@@ -133,9 +133,25 @@ $('resetCut').onclick=()=>{if(original){working=duplicate(original);showWorking(
 source.addEventListener('click',e=>{if(!working)return;const r=source.getBoundingClientRect(),x=Math.max(0,Math.min(source.width-1,Math.floor((e.clientX-r.left)*source.width/r.width))),y=Math.max(0,Math.min(source.height-1,Math.floor((e.clientY-r.top)*source.height/r.height)));clearColorRegion(working,x,y,numeric('tol',8,130));showWorking()});
 for(const id of ['scale','shiftX','shiftY','frameScale','frameX','frameY'])$(id).addEventListener('input',()=>{repaint();updatePositionControls()});
 for(const id of ['bgZoom','bgDim','bgX','bgY'])$(id).addEventListener('input',()=>{backgroundStyle();updatePositionControls()});
-$('saveSprite').onclick=async()=>dl(await pngBlob(artToSquare()),'sprite-sem-fundo.png');
+$('saveSprite').onclick=async()=>dl(await pngBlob(compose(false)),'icone-circular-sem-fundo.png');
 $('exportPNG').onclick=async()=>{try{dl(await pngBlob(await staticBackgroundCard()),safeName()+'.png');message(activeBackground&&backgroundSource().animated?'PNG exportado como fotografia estática da animação. Para manter o movimento, use HTML animado.':'Card PNG exportado.')}catch(err){message('Não foi possível exportar o PNG: '+err.message)}};
-$('exportHTML').onclick=async()=>{try{const front=await toBase64(await pngBlob(compose(true))),p=backgroundSource(),back=p?await toBase64(await (async()=>{const r=await fetch(p.src);if(!r.ok)throw Error('Fundo não encontrado');return r.blob()})()):'',zoom=numeric('bgZoom',100,200)/100,dim=numeric('bgDim',0,75)/100,bgx=numeric('bgX',-256,256)/512*100,bgy=numeric('bgY',-256,256)/512*100;const html='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+htmlEscape(field('name')||'Item')+'</title><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#15121a}.art{width:min(94vw,94vh,720px);aspect-ratio:1;position:relative;overflow:hidden;border-radius:12px;background:#161321}img{position:absolute;width:100%;height:100%;inset:0}#back{object-fit:cover;transform:translate('+bgx+'%,'+bgy+'%) scale('+zoom+');transform-origin:center}#shade{position:absolute;inset:0;background:rgba(0,0,0,'+dim+')}#front{object-fit:fill}</style></head><body><main class="art">'+(back?'<img id="back" src="'+back+'" alt="Fundo animado original"><div id="shade"></div>':'')+'<img id="front" src="'+front+'" alt="Item e moldura"></main></body></html>';dl(new Blob([html],{type:'text/html;charset=utf-8'}),safeName()+'_animado.html');message('HTML independente exportado com as imagens originais. GIFs permanecem GIFs com todos os quadros.')}catch(e){message('Erro ao exportar HTML: '+e.message)}};
+$('exportHTML').onclick=async()=>{
+ try{
+  const front=await toBase64(await pngBlob(artToSquare()));
+  const frame=activeFrame?await toBase64(await pngBlob(frameLayerCanvas())):'';
+  const p=backgroundSource();
+  const back=p?await toBase64(await (async()=>{const r=await fetch(p.src);if(!r.ok)throw Error('Fundo não encontrado');return r.blob()})()):'';
+  const zoom=numeric('bgZoom',100,200)/100,dim=numeric('bgDim',0,75)/100,bgx=numeric('bgX',-256,256)/512*100,bgy=numeric('bgY',-256,256)/512*100;
+  const html='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+htmlEscape(field('name')||'Item')+'</title>'+
+   '<style>*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#15121a}.art{width:min(94vw,94vh,720px);aspect-ratio:1;position:relative;isolation:isolate}.disc{position:absolute;inset:0;clip-path:circle(40% at 50% 50%);background:#252135}.art img,.disc span{position:absolute;width:100%;height:100%;inset:0;display:block}.art img{object-fit:fill}.disc #back{object-fit:cover;transform-origin:center;transform:translate('+bgx+'%,'+bgy+'%) scale('+zoom+')}.disc #shade{background:rgba(0,0,0,'+dim+')}.disc #front{object-fit:fill}#outer{z-index:2;pointer-events:none}</style></head><body><main class="art"><div class="disc">'+
+   (back?'<img id="back" src="'+back+'" alt="Fundo animado original"><span id="shade"></span>':'')+
+   '<img id="front" src="'+front+'" alt="Arte do item"></div>'+
+   (frame?'<img id="outer" src="'+frame+'" alt="Moldura externa">':'')+
+   '</main></body></html>';
+  dl(new Blob([html],{type:'text/html;charset=utf-8'}),safeName()+'_circular_animado.html');
+  message('HTML circular exportado: arte dentro do disco, moldura externa e GIF original com todos os quadros.')
+ }catch(e){message('Erro ao exportar HTML: '+e.message)}
+};
 function setupFrames(){const root=$('frames');root.replaceChildren();for(let i=0;i<=9;i++){const b=document.createElement('button');b.className='frame';b.type='button';b.dataset.frame=i;b.setAttribute('aria-pressed',String(activeFrame===i));b.title=i?'Moldura '+i+' — '+frameNames[i-1]:'Nenhuma moldura';const glyph=document.createElement('span');glyph.textContent=i?'◯':'∅';b.append(glyph);if(i){const img=document.createElement('img');img.alt='';img.src=customFrameUrls[i]||'assets/frames/frame-'+String(i).padStart(2,'0')+'.png';img.onerror=()=>{img.hidden=true};b.append(img)}const small=document.createElement('small');small.textContent=i?'0'+i:'Sem';b.append(small);b.onclick=()=>chooseFrame(i);root.append(b)}}
 async function frameSource(i){if(!i)return null;const custom=await getBlob('frame:'+i);if(custom)return custom;try{const resp=await fetch('assets/frames/frame-'+String(i).padStart(2,'0')+'.png',{cache:'force-cache'});if(resp.ok&&resp.headers.get('content-type')?.startsWith('image/'))return await resp.blob()}catch(e){}return null}
 async function chooseFrame(i){activeFrame=i;frameBitmap?.close?.();frameBitmap=null;if(i){const blob=await frameSource(i);if(blob){try{frameBitmap=await readImg(blob)}catch(e){message('Falha ao carregar esta moldura.')}}else message('Moldura '+i+' indisponível no servidor: ainda falta o arquivo PNG predefinido.')}setupFrames();repaint();if(i)selectEditLayer('frame')}
@@ -146,9 +162,37 @@ $('getFrame').onclick=async()=>{if(!activeFrame)return message('Escolha uma mold
 function readItemForm(){const bonuses=[];for(const stat of ['strength','defense','intelligence','agility']){const value=Math.trunc(numeric(stat,0,999));if(value)bonuses.push({stat,value})}return{id:activeId||uid(),name:field('name').slice(0,120),group:Math.trunc(numeric('category',1,6)),type:field('type'),rarity:field('rarity'),quantity:Math.trunc(numeric('quantity',1,9999)),weight:numeric('weight',0,9999),damageDice:field('damageDice').slice(0,40),description:field('description').slice(0,3000),tags:field('tags'),effect:field('effect'),bonuses,frame:activeFrame,background:activeBackground,bgZoom:numeric('bgZoom',100,200),bgDim:numeric('bgDim',0,75),bgX:numeric('bgX',-256,256),bgY:numeric('bgY',-256,256),scale:numeric('scale',20,250),shiftX:numeric('shiftX',-256,256),shiftY:numeric('shiftY',-256,256),frameScale:numeric('frameScale',40,180),frameX:numeric('frameX',-256,256),frameY:numeric('frameY',-256,256),processedArt,updatedAt:new Date().toISOString()}}
 async function saveCurrent(){let m=readItemForm();if(!m.name)throw Error('Digite o nome do item.');if(!working)throw Error('Adicione uma imagem para o item.');await putBlob('art:'+m.id,await pngBlob(artToSquare()));await putBlob('source:'+m.id,await pngBlob(working));await putBlob('card:'+m.id,await pngBlob(compose(true)));let index=items.findIndex(x=>x.id===m.id);if(index>=0)items[index]=m;else items.unshift(m);saveMetadata();activeId=m.id;refreshItems();window.dispatchEvent(new Event('codex:items-changed'));return m}
 $('itemForm').addEventListener('submit',async e=>{e.preventDefault();try{let m=await saveCurrent();message('Item "'+m.name+'" salvo no navegador! Volte à wiki para vê-lo na coleção.')}catch(err){message(err.message)}});
-async function payload(m){const art=await getBlob('art:'+m.id),sourceImage=await getBlob('source:'+m.id),card=await getBlob('card:'+m.id),frame=m.frame?await getBlob('frame:'+m.frame):null;return{format:'codex-item-v1',version:1,item:m,image:art?await toBase64(art):null,sourceImage:sourceImage?await toBase64(sourceImage):null,card:card?await toBase64(card):null,frameImage:frame?await toBase64(frame):null}}
+function compositionData(m){
+ const frameNo=Math.trunc(Number(m.frame)||0),bgNo=Math.trunc(Number(m.background)||0);
+ const bg=backgroundPresets[bgNo-1];
+ return{iconShape:'circle',frameOutside:true,iconRadius:40,
+  frameUrl:frameNo>0?new URL('assets/frames/frame-'+String(frameNo).padStart(2,'0')+'.png',location.href).href:null,
+  backgroundUrl:bg?new URL(bg.src,location.href).href:null,
+  bgZoom:Number(m.bgZoom)||100,bgDim:Number(m.bgDim)||0,bgX:Number(m.bgX)||0,bgY:Number(m.bgY)||0}
+}
+async function payload(m){
+ const art=await getBlob('art:'+m.id),card=await getBlob('card:'+m.id);
+ const frame=m.frame?await getBlob('frame:'+m.frame):null,sourceImage=await getBlob('source:'+m.id);
+ return{format:'codex-item-v1',version:2,item:m,composition:compositionData(m),
+  image:art?await toBase64(art):null,sourceImage:sourceImage?await toBase64(sourceImage):null,
+  card:card?await toBase64(card):null,frameImage:frame?await toBase64(frame):null}
+}
 $('exportItem').onclick=async()=>{try{const m=await saveCurrent();dl(jsonBlob(await payload(m)),m.name.replace(/[^\p{L}\p{N}-]+/gu,'_')+'.codex.json');message('Item exportado como JSON, com imagem e atributos.')}catch(e){message(e.message)}};
-$('sendDelta').onclick=async()=>{try{const m=await saveCurrent();let c=compose(true),tiny=blankCanvas(180,180);tiny.getContext('2d').drawImage(c,0,0,180,180);const p={format:'codex-item-v1',version:1,item:m,card:tiny.toDataURL('image/png')};localStorage.setItem('codex-delta-inbox-v1',JSON.stringify(p));window.open('https://matheuz55peri-tech.github.io/Deltarune-RPG/#codex-import','_blank');message('Transferência enviada. O Delta RPG deverá mostrar o item no FILE ativo.')}catch(e){message('Erro no envio: '+e.message)}};
+$('sendDelta').onclick=async()=>{
+ try{
+  const m=await saveCurrent();
+  const art=blankCanvas(256,256),card=blankCanvas(180,180);
+  art.getContext('2d').drawImage(artToSquare(),0,0,256,256);
+  card.getContext('2d').drawImage(await staticBackgroundCard(),0,0,180,180);
+  const p={format:'codex-item-v1',version:2,item:m,composition:compositionData(m),
+   image:art.toDataURL('image/png'),card:card.toDataURL('image/png')};
+  const custom=activeFrame?await getBlob('frame:'+activeFrame):null;
+  if(custom){const frameCanvas=blankCanvas(256,256);frameCanvas.getContext('2d').drawImage(frameLayerCanvas(),0,0,256,256);p.frameImage=frameCanvas.toDataURL('image/png')}
+  localStorage.setItem('codex-delta-inbox-v1',JSON.stringify(p));
+  window.open('https://matheuz55peri-tech.github.io/Deltarune-RPG/#codex-import','_blank');
+  message('Transferência enviada: ícone redondo com arte e fundo separados da moldura. GIFs permanecem animados no Delta RPG.')
+ }catch(e){message('Erro no envio: '+e.message)}
+};
 function refreshItems(){let root=$('itemList');root.replaceChildren();if(!items.length){root.textContent='Nenhum item criado ainda.';return}for(const it of items){const group=document.createElement('span');group.style.display='inline-flex';group.style.gap='4px';const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=it.name+' · '+(groups[it.group]||'Itens');b.onclick=()=>editItem(it.id);const del=document.createElement('button');del.type='button';del.className='btn';del.textContent='✕';del.title='Excluir item '+it.name;del.onclick=async()=>{if(!confirm('Excluir este item da wiki?'))return;items=items.filter(x=>x.id!==it.id);await delBlob('art:'+it.id);await delBlob('source:'+it.id);await delBlob('card:'+it.id);saveMetadata();if(activeId===it.id)resetForm();refreshItems();message('Item excluído da coleção local.')};group.append(b,del);root.append(group)}}
 function resetForm(){activeId=null;processedArt=false;$('itemForm').reset();selectBackground(0);$('scale').value=85;$('shiftX').value=0;$('shiftY').value=0;$('frameScale').value=100;$('frameX').value=0;$('frameY').value=0;$('bgX').value=0;$('bgY').value=0;original=null;working=null;$('artFile').value='';showWorking();chooseFrame(0);selectEditLayer('item');message('Nova ficha iniciada.')}
 $('new').onclick=resetForm;
@@ -239,7 +283,7 @@ function hitLayer(p){
  if(px<0||py<0||px>=512||py>=512)return null;
  if(frameBitmap){
   const c=blankCanvas(1,1),ctx=c.getContext('2d',{willReadFrequently:true}),r=layerRect('frame');
-  if(r){ctx.drawImage(frameBitmap,r.x-p.x,r.y-p.y,r.w,r.h);if(ctx.getImageData(0,0,1,1).data[3]>45)return 'frame'}
+  if(r){ctx.drawImage(frameBitmap,r.x-p.x,r.y-p.y,r.w,r.h);if(Math.hypot(p.x-256,p.y-256)>=FRAME_INNER_RADIUS&&ctx.getImageData(0,0,1,1).data[3]>45)return 'frame'}
  }
  if(working){
   const c=artToSquare(),ctx=c.getContext('2d',{willReadFrequently:true});
