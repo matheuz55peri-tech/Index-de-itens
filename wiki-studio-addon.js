@@ -32,7 +32,7 @@ async function fixedCard(m){
  return blob
 }
 async function reloadItems(){const list=readStudio(),known=new Set(list.map(x=>x.id));for(const it of [...ITEMS]){if(ids.has(it.id)&&!known.has(it.id)){ITEMS.splice(ITEMS.indexOf(it),1);ids.delete(it.id)}}for(const m of list){let it=ITEMS.find(x=>x.id===m.id);if(!it){it={id:m.id,name:m.name,group:Number(m.group)||1,category:category(m.group),number:ITEMS.length+1,emoji:'✦',image:''};ITEMS.push(it);ids.add(it.id)}it.name=m.name;it.group=Number(m.group)||1;it.category=category(it.group);it.number=ITEMS.indexOf(it)+1;let b=null;
- if((Number(m.frameRenderVersion)||0)<2&&repaired[m.id]!==m.updatedAt){
+ if((Number(m.frameRenderVersion)||0)<2&&repaired[m.id]!==String(m.updatedAt||'legacy')){
   try{b=await fixedCard(m);if(b){repaired[m.id]=m.updatedAt||'legacy';localStorage.setItem(repairedKey,JSON.stringify(repaired))}}catch(e){console.warn('Recuperação de moldura:',e)}
  }
  b=b||await asset('card:'+m.id)||await asset('art:'+m.id);if(b){let old=urls.get(m.id);if(old)URL.revokeObjectURL(old);it.image=URL.createObjectURL(b);urls.set(m.id,it.image)}}draw()}
