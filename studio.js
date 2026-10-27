@@ -41,13 +41,32 @@ if(frame)clearColorRegion(c,Math.floor(x/2),Math.floor(y/2),tol);
 return c}
 function bbox(c){const {data}=c.getContext('2d').getImageData(0,0,c.width,c.height);let xmin=c.width,ymin=c.height,xmax=-1,ymax=-1;for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++){if(data[(y*c.width+x)*4+3]>10){xmin=Math.min(xmin,x);xmax=Math.max(xmax,x);ymin=Math.min(ymin,y);ymax=Math.max(ymax,y)}}return xmax<0?null:{x:xmin,y:ymin,w:xmax-xmin+1,h:ymax-ymin+1}}
 function artToSquare(){const c=blankCanvas(512,512),ctx=c.getContext('2d');if(!working)return c;let scale=numeric('scale',20,250)/100,xshift=numeric('shiftX',-256,256),yshift=numeric('shiftY',-256,256);if(processedArt){let sz=512*scale;ctx.drawImage(working,(512-sz)/2+xshift,(512-sz)/2+yshift,sz,sz);return c}let b=bbox(working);if(!b)return c;let dim=430*scale/Math.max(b.w,b.h),w=b.w*dim,h=b.h*dim;ctx.drawImage(working,b.x,b.y,b.w,b.h,(512-w)/2+xshift,(512-h)/2+yshift,w,h);return c}
-function compose(includeFrame){const c=artToSquare(),ctx=c.getContext('2d');if(includeFrame&&frameBitmap){const s=numeric('frameScale',40,180)/100,d=512*s;ctx.drawImage(frameBitmap,(512-d)/2+numeric('frameX',-256,256),(512-d)/2+numeric('frameY',-256,256),d,d)}return c}
-function repaint(){const c=compose(true);pctx.clearRect(0,0,512,512);pctx.drawImage(c,0,0);renderSelection()}
+// A arte e o fundo pertencem ao disco central. A moldura nunca é achatada sobre o centro do ícone.
+const ICON_RADIUS=512*.40,FRAME_INNER_RADIUS=512*.375;
+function discClip(ctx){ctx.beginPath();ctx.arc(256,256,ICON_RADIUS,0,Math.PI*2);ctx.clip()}
+function drawOuterFrame(ctx){
+ if(!frameBitmap)return;
+ const s=numeric('frameScale',40,180)/100,d=512*s;
+ ctx.save();ctx.beginPath();ctx.arc(256,256,258,0,Math.PI*2);ctx.arc(256,256,FRAME_INNER_RADIUS,0,Math.PI*2,true);ctx.clip('evenodd');
+ ctx.drawImage(frameBitmap,(512-d)/2+numeric('frameX',-256,256),(512-d)/2+numeric('frameY',-256,256),d,d);ctx.restore()
+}
+function frameLayerCanvas(){const c=blankCanvas(512,512);drawOuterFrame(c.getContext('2d'));return c}
+function compose(includeFrame){const c=blankCanvas(512,512),ctx=c.getContext('2d');ctx.save();discClip(ctx);ctx.drawImage(artToSquare(),0,0);ctx.restore();if(includeFrame)drawOuterFrame(ctx);return c}
+function repaint(){pctx.clearRect(0,0,512,512);pctx.drawImage(artToSquare(),0,0);const overlay=$('frameOverlay'),fctx=overlay.getContext('2d');fctx.clearRect(0,0,512,512);drawOuterFrame(fctx);renderSelection()}
 function backgroundSource(id=activeBackground){return Number.isInteger(id)&&id>=1&&id<=backgroundPresets.length?backgroundPresets[id-1]:null}
 function backgroundStyle(){const preview=$('backgroundPreview'),shade=$('backgroundShade'),p=backgroundSource();const zoom=numeric('bgZoom',100,200)/100,dim=numeric('bgDim',0,75)/100;preview.hidden=!p;shade.hidden=!p;if(p){if(preview.getAttribute('src')!==p.src)preview.src=p.src;preview.style.transform='translate('+(numeric('bgX',-256,256)/512*100)+'%,'+(numeric('bgY',-256,256)/512*100)+'%) scale('+zoom+')';shade.style.background='rgba(0,0,0,'+dim+')'}else preview.removeAttribute('src');renderSelection()}
 function renderBackgroundOptions(){const root=$('backgrounds');root.replaceChildren();for(let i=0;i<=backgroundPresets.length;i++){const p=backgroundSource(i),b=document.createElement('button');b.type='button';b.className='background-option';b.dataset.background=String(i);b.setAttribute('aria-pressed',String(i===activeBackground));b.title=p?p.name:'Sem fundo';if(p){const img=document.createElement('img');img.src=p.src;img.alt='';img.loading='lazy';b.append(img);if(p.animated){const gif=document.createElement('span');gif.className='gif-label';gif.textContent='GIF';b.append(gif)}}const name=document.createElement('span');name.className='background-name';name.textContent=p?p.name:'∅ Sem fundo';b.append(name);b.onclick=()=>selectBackground(i);root.append(b)}}
 function selectBackground(i){activeBackground=backgroundSource(Number(i))?Number(i):0;backgroundStyle();renderBackgroundOptions();repaint();if(activeBackground)selectEditLayer('background')}
-async function staticBackgroundCard(){const c=blankCanvas(512,512),ctx=c.getContext('2d'),p=backgroundSource();if(p){const response=await fetch(p.src,{cache:'force-cache'});if(!response.ok)throw Error('Não foi possível carregar o fundo original: '+p.name);const bm=await createImageBitmap(await response.blob());const zoom=numeric('bgZoom',100,200)/100,ratio=Math.max(512/bm.width,512/bm.height)*zoom,w=bm.width*ratio,h=bm.height*ratio;ctx.drawImage(bm,(512-w)/2+numeric('bgX',-256,256),(512-h)/2+numeric('bgY',-256,256),w,h);bm.close?.();const dim=numeric('bgDim',0,75)/100;if(dim){ctx.fillStyle='rgba(0,0,0,'+dim+')';ctx.fillRect(0,0,512,512)}}ctx.drawImage(compose(true),0,0);return c}
+async function staticBackgroundCard(){
+ const c=blankCanvas(512,512),ctx=c.getContext('2d'),p=backgroundSource();
+ ctx.save();discClip(ctx);
+ if(p){const response=await fetch(p.src,{cache:'force-cache'});if(!response.ok)throw Error('Não foi possível carregar o fundo original: '+p.name);
+ const bm=await createImageBitmap(await response.blob()),zoom=numeric('bgZoom',100,200)/100;
+ const ratio=Math.max(512/bm.width,512/bm.height)*zoom,w=bm.width*ratio,h=bm.height*ratio;
+ ctx.drawImage(bm,(512-w)/2+numeric('bgX',-256,256),(512-h)/2+numeric('bgY',-256,256),w,h);bm.close?.();
+ const dim=numeric('bgDim',0,75)/100;if(dim){ctx.fillStyle='rgba(0,0,0,'+dim+')';ctx.fillRect(0,0,512,512)}
+ }ctx.drawImage(artToSquare(),0,0);ctx.restore();drawOuterFrame(ctx);return c
+}
 function safeName(){return (field('name')||'item').replace(/[^\p{L}\p{N}-]+/gu,'_')}
 function htmlEscape(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function showWorking(){workingBBox=working?bbox(working):null;if(!working){source.hidden=true;repaint();return}source.hidden=false;source.width=working.width;source.height=working.height;source.style.maxHeight='345px';const c=source.getContext('2d');c.clearRect(0,0,source.width,source.height);c.drawImage(working,0,0);repaint()}
