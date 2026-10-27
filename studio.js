@@ -20,13 +20,13 @@ function numeric(id,min=0,max=9999){return Math.max(min,Math.min(max,Number($(id
 function field(id){return $(id).value.trim()}
 function uid(){return 'custom_'+(globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2))}
 function readImg(blob){return createImageBitmap(blob)}
-function pngBlob(c){return new Promise(resolve=>c.toBlob(resolve,'image/png'))}
+function pngBlob(c){return new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error('Falha ao gerar arquivo PNG.')),'image/png'))}
 function blankCanvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c}
 function dl(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2500)}
 function jsonBlob(o){return new Blob([JSON.stringify(o,null,2)],{type:'application/json'})}
 function toBase64(b){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.readAsDataURL(b)})}
 function fromDataUrl(src){if(typeof src!=='string'||!src.startsWith('data:image/'))throw Error('Imagem inválida');const cut=src.indexOf(',');const mime=src.substring(5,src.indexOf(';'));const bytes=atob(src.slice(cut+1));const out=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)out[i]=bytes.charCodeAt(i);return new Blob([out],{type:mime||'image/png'})}
-async function loadCanvas(blob,max=850){const bm=await readImg(blob),scale=Math.min(1,max/Math.max(bm.width,bm.height)),w=Math.max(1,Math.round(bm.width*scale)),h=Math.max(1,Math.round(bm.height*scale)),c=blankCanvas(w,h);c.getContext('2d',{willReadFrequently:true}).drawImage(bm,0,0,w,h);bm.close?.();return c}
+async function loadCanvas(blob,max=2048){const bm=await readImg(blob),scale=Math.min(1,max/Math.max(bm.width,bm.height)),w=Math.max(1,Math.round(bm.width*scale)),h=Math.max(1,Math.round(bm.height*scale)),c=blankCanvas(w,h);c.getContext('2d',{willReadFrequently:true}).drawImage(bm,0,0,w,h);bm.close?.();return c}
 function duplicate(c){let d=blankCanvas(c.width,c.height);d.getContext('2d').drawImage(c,0,0);return d}
 function clearColorRegion(c,x,y,tol){const w=c.width,h=c.height;if(x<0||y<0||x>=w||y>=h)return;const ctx=c.getContext('2d',{willReadFrequently:true}),img=ctx.getImageData(0,0,w,h),data=img.data,n=w*h;
 const start=y*w+x,s=start*4,ref=[data[s],data[s+1],data[s+2]];if(data[s+3]===0)return;
@@ -61,8 +61,7 @@ function smartRemoveBackground(c,tol,onlyLight=false){
  while(front<back){const v=queue[front++];removed[v]=1;
   const x=v%w,y=(v-x)/w;
   if(x>0)add(v-1);if(x<w-1)add(v+1);if(y>0)add(v-w);if(y<h-1)add(v+w);
-  if(x>0&&y>0)add(v-w-1);if(x<w-1&&y>0)add(v-w+1);
-  if(x>0&&y<h-1)add(v+w-1);if(x<w-1&&y<h-1)add(v+w+1);
+  // Vizinhos na horizontal e na vertical somente: não atravesse contornos pela diagonal.
  }
  if(!back)return{removed:0,message:'Nenhum fundo externo correspondente encontrado. Ajuste a tolerância.'};
  const threshold=Math.sqrt(limit),outer=threshold+Math.max(28,tol*1.25);
@@ -137,7 +136,42 @@ source.addEventListener('click',e=>{if(!working)return;const r=source.getBoundin
 $('pixelArt').addEventListener('change',repaint);
 for(const id of ['scale','shiftX','shiftY','frameScale','frameX','frameY'])$(id).addEventListener('input',()=>{repaint();updatePositionControls()});
 for(const id of ['bgZoom','bgDim','bgX','bgY'])$(id).addEventListener('input',()=>{backgroundStyle();updatePositionControls()});
-$('saveSprite').onclick=async()=>dl(await pngBlob(compose(false)),'icone-circular-sem-fundo.png');
+// PNG transparente = RGBA verdadeiro; nenhum fundo ou moldura é achatado no arquivo.
+function artHasTransparency(c){
+ const d=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,c.width,c.height).data;
+ for(let i=3;i<d.length;i+=4)if(d[i]<255)return true;
+ return false
+}
+$('exportAlpha').onclick=async()=>{
+ try{
+  if(!working){message('Escolha uma imagem antes de converter em PNG transparente.');return}
+  if(!artHasTransparency(working)){
+   const candidate=duplicate(working);
+   const res=smartRemoveBackground(candidate,numeric('tol',8,130),true);
+   if(!res.removed){const other=smartRemoveBackground(candidate,numeric('tol',8,130),false);
+    if(!other.removed){message('Não encontrei fundo conectado às bordas. Ajuste a tolerância e use Remover fundo; o desenho original foi preservado.');return}}
+   if(!bbox(candidate)){message('O recorte removeria toda a imagem. Reduza a tolerância e tente novamente; seu desenho foi preservado.');return}
+   working=candidate;showWorking()
+  }
+  const png=await pngBlob(working);
+  dl(png,safeName()+'_transparente.png');
+  message('PNG transparente exportado com transparência real e nas dimensões do desenho ('+working.width+' × '+working.height+').')
+ }catch(err){message('Falha na conversão transparente: '+err.message)}
+};
+$('saveSprite').onclick=async()=>{
+ try{
+  if(!working){message('Adicione uma imagem primeiro.');return}
+  dl(await pngBlob(artToSquare()),safeName()+'_sprite_transparente.png');
+  message('Sprite PNG 512 × 512 salvo com transparência real, sem moldura nem corte circular.')
+ }catch(err){message('Falha ao exportar sprite: '+err.message)}
+};
+$('saveCircle').onclick=async()=>{
+ try{
+  if(!working){message('Adicione uma imagem primeiro.');return}
+  dl(await pngBlob(compose(false)),safeName()+'_icone_circular.png');
+  message('Ícone circular PNG exportado, com fundo externo transparente e sem moldura.')
+ }catch(err){message('Falha ao exportar ícone: '+err.message)}
+};
 $('exportPNG').onclick=async()=>{try{dl(await pngBlob(await staticBackgroundCard()),safeName()+'.png');message(activeBackground&&backgroundSource().animated?'PNG exportado como fotografia estática da animação. Para manter o movimento, use HTML animado.':'Card PNG exportado.')}catch(err){message('Não foi possível exportar o PNG: '+err.message)}};
 $('exportHTML').onclick=async()=>{
  try{
