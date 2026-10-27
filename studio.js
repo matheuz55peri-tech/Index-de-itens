@@ -34,11 +34,55 @@ const tolSq=tol*tol*3,visited=new Uint8Array(n),queue=new Int32Array(n);let fron
 while(front<back){let v=queue[front++],i=v*4;const dr=data[i]-ref[0],dg=data[i+1]-ref[1],db=data[i+2]-ref[2];if(data[i+3]===0||dr*dr+dg*dg+db*db>tolSq)continue;data[i+3]=0;
 const xx=v%w,yy=(v-xx)/w;function add(q){if(!visited[q]){visited[q]=1;queue[back++]=q}}if(xx>0)add(v-1);if(xx<w-1)add(v+1);if(yy>0)add(v-w);if(yy<h-1)add(v+w);
 }ctx.putImageData(img,0,0)}
-function cutBackground(c,tol,frame){let x=c.width,y=c.height;const seeds=[[1,1],[x-2,1],[1,y-2],[x-2,y-2]];
-// Bordas variáveis: amostras extras removem branco, preto e fundos quase uniformes.
-for(let i=0;i<seeds.length;i++)clearColorRegion(c,seeds[i][0],seeds[i][1],tol);
-if(frame)clearColorRegion(c,Math.floor(x/2),Math.floor(y/2),tol);
-return c}
+// Recorte conectado a TODAS as bordas: preserva branco e cores claras cercados pelo desenho.
+function smartRemoveBackground(c,tol,onlyLight=false){
+ const ctx=c.getContext('2d',{willReadFrequently:true}),img=ctx.getImageData(0,0,c.width,c.height);
+ const d=img.data,w=c.width,h=c.height,n=w*h;
+ const buckets=new Map(),step=Math.max(1,Math.floor(Math.min(w,h)/90));
+ function survey(x,y){const i=(y*w+x)*4;if(d[i+3]<32)return;const r=d[i],g=d[i+1],b=d[i+2];
+  if(onlyLight&&Math.min(r,g,b)<205)return;
+  const key=((r>>4)<<8)|((g>>4)<<4)|(b>>4),entry=buckets.get(key)||{count:0,r:0,g:0,b:0};
+  entry.count++;entry.r+=r;entry.g+=g;entry.b+=b;buckets.set(key,entry)}
+ for(let x=0;x<w;x+=step){survey(x,0);survey(x,h-1)}
+ for(let y=0;y<h;y+=step){survey(0,y);survey(w-1,y)}
+ let best=null;for(const b of buckets.values())if(!best||b.count>best.count)best=b;
+ if(!best)return{removed:0,message:'A imagem não apresenta um fundo claro nas bordas.'};
+ const ref=[best.r/best.count,best.g/best.count,best.b/best.count];
+ const limit=(tol*Math.sqrt(3))**2;
+ const matches=v=>{const i=v*4;if(d[i+3]===0)return false;
+  const dr=d[i]-ref[0],dg=d[i+1]-ref[1],db=d[i+2]-ref[2];
+  if(onlyLight&&Math.min(d[i],d[i+1],d[i+2])<Math.max(190,235-tol))return false;
+  return dr*dr+dg*dg+db*db<=limit};
+ const visited=new Uint8Array(n),removed=new Uint8Array(n),queue=new Int32Array(n);
+ let front=0,back=0;
+ function add(v){if(visited[v])return;visited[v]=1;if(matches(v))queue[back++]=v}
+ for(let x=0;x<w;x++){add(x);add((h-1)*w+x)}
+ for(let y=1;y<h-1;y++){add(y*w);add(y*w+w-1)}
+ while(front<back){const v=queue[front++];removed[v]=1;
+  const x=v%w,y=(v-x)/w;
+  if(x>0)add(v-1);if(x<w-1)add(v+1);if(y>0)add(v-w);if(y<h-1)add(v+w);
+  if(x>0&&y>0)add(v-w-1);if(x<w-1&&y>0)add(v-w+1);
+  if(x>0&&y<h-1)add(v+w-1);if(x<w-1&&y<h-1)add(v+w+1);
+ }
+ if(!back)return{removed:0,message:'Nenhum fundo externo correspondente encontrado. Ajuste a tolerância.'};
+ const threshold=Math.sqrt(limit),outer=threshold+Math.max(28,tol*1.25);
+ // Suavizar somente os pixels imediatamente vizinhos do fundo removido:
+ // bordas internas fechadas não são processadas, preservando a pixel art branca.
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+  const v=y*w+x,i=v*4;if(removed[v]||d[i+3]===0)continue;
+  const near=(x>0&&removed[v-1])||(x<w-1&&removed[v+1])||(y>0&&removed[v-w])||(y<h-1&&removed[v+w]);
+  if(!near)continue;
+  const dist=Math.hypot(d[i]-ref[0],d[i+1]-ref[1],d[i+2]-ref[2]);
+  if(dist<outer){const opacity=Math.min(1,Math.max(0,(dist-threshold)/(outer-threshold)));d[i+3]=Math.min(d[i+3],Math.round(d[i+3]*opacity))}
+ }
+ for(let v=0;v<n;v++)if(removed[v])d[v*4+3]=0;
+ ctx.putImageData(img,0,0);
+ return{removed:back,reference:ref.map(Math.round),message:back+' pixels de fundo removidos sem apagar áreas internas protegidas.'}
+}
+function cutBackground(c,tol,frame){
+ if(frame){const w=c.width,h=c.height;for(const [x,y]of [[1,1],[w-2,1],[1,h-2],[w-2,h-2],[Math.floor(w/2),Math.floor(h/2)]])clearColorRegion(c,x,y,tol);return c}
+ const result=smartRemoveBackground(c,tol,false);return c
+}
 function bbox(c){const {data}=c.getContext('2d').getImageData(0,0,c.width,c.height);let xmin=c.width,ymin=c.height,xmax=-1,ymax=-1;for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++){if(data[(y*c.width+x)*4+3]>10){xmin=Math.min(xmin,x);xmax=Math.max(xmax,x);ymin=Math.min(ymin,y);ymax=Math.max(ymax,y)}}return xmax<0?null:{x:xmin,y:ymin,w:xmax-xmin+1,h:ymax-ymin+1}}
 function artToSquare(){const c=blankCanvas(512,512),ctx=c.getContext('2d');if(!working)return c;let scale=numeric('scale',20,250)/100,xshift=numeric('shiftX',-256,256),yshift=numeric('shiftY',-256,256);if(processedArt){let sz=512*scale;ctx.drawImage(working,(512-sz)/2+xshift,(512-sz)/2+yshift,sz,sz);return c}let b=bbox(working);if(!b)return c;let dim=430*scale/Math.max(b.w,b.h),w=b.w*dim,h=b.h*dim;ctx.drawImage(working,b.x,b.y,b.w,b.h,(512-w)/2+xshift,(512-h)/2+yshift,w,h);return c}
 // A arte e o fundo pertencem ao disco central. A moldura nunca é achatada sobre o centro do ícone.
@@ -73,7 +117,18 @@ function showWorking(){workingBBox=working?bbox(working):null;if(!working){sourc
 async function setArt(blob,isProcessed){processedArt=!!isProcessed;if(!blob){original=null;working=null;showWorking();return}const c=await loadCanvas(blob);original=duplicate(c);working=duplicate(c);if(isProcessed){$('scale').value=100;$('shiftX').value=0;$('shiftY').value=0}showWorking();if(working)selectEditLayer('item')}
 $('artFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{await setArt(f);message('Imagem carregada. Use remover fundo e ajuste a escala.')}catch(err){message('Erro ao abrir imagem: '+err.message)}});
 $('tol').addEventListener('input',e=>{$('tolLabel').textContent=e.target.value});
-$('autoCut').onclick=()=>{if(!original){message('Primeiro escolha uma imagem.');return}working=cutBackground(duplicate(original),numeric('tol',8,130),false);showWorking();message('Fundo externo removido. Confira a borda e clique em áreas restantes para ajustar.')};
+$('autoCut').onclick=()=>{
+ if(!original){message('Primeiro escolha uma imagem.');return}
+ working=duplicate(original);
+ const res=smartRemoveBackground(working,numeric('tol',8,130),false);
+ showWorking();message(res.message)
+};
+$('autoWhite').onclick=()=>{
+ if(!original){message('Primeiro escolha uma imagem.');return}
+ working=duplicate(original);
+ const res=smartRemoveBackground(working,numeric('tol',8,130),true);
+ showWorking();message(res.message)
+};
 $('resetCut').onclick=()=>{if(original){working=duplicate(original);showWorking();message('Imagem original restaurada.')}};
 source.addEventListener('click',e=>{if(!working)return;const r=source.getBoundingClientRect(),x=Math.max(0,Math.min(source.width-1,Math.floor((e.clientX-r.left)*source.width/r.width))),y=Math.max(0,Math.min(source.height-1,Math.floor((e.clientY-r.top)*source.height/r.height)));clearColorRegion(working,x,y,numeric('tol',8,130));showWorking()});
 for(const id of ['scale','shiftX','shiftY','frameScale','frameX','frameY'])$(id).addEventListener('input',()=>{repaint();updatePositionControls()});
