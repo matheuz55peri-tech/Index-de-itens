@@ -214,7 +214,7 @@ function layerPosition(k){const ids=layerInputs[k];return{x:Number($(ids[0]).val
 function layerRect(k){
  if(!layerReady(k))return null;
  const pos=layerPosition(k);
- if(k==='background'){const d=512*pos.scale/100;return{x:(512-d)/2+pos.x,y:(512-d)/2+pos.y,w:d,h:d}}
+ if(k==='background'){const d=512*.8*pos.scale/100;return{x:(512-d)/2+pos.x,y:(512-d)/2+pos.y,w:d,h:d}}
  if(k==='frame'){const d=512*pos.scale/100;return{x:(512-d)/2+pos.x,y:(512-d)/2+pos.y,w:d,h:d}}
  if(!workingBBox)return null;
  const b=workingBBox,scale=pos.scale/100;
