@@ -168,7 +168,7 @@ function compositionData(m){
  return{iconShape:'circle',frameOutside:true,iconRadius:40,
   frameUrl:frameNo>0?new URL('assets/frames/frame-'+String(frameNo).padStart(2,'0')+'.png',location.href).href:null,
   backgroundUrl:bg?new URL(bg.src,location.href).href:null,
-  bgZoom:Number(m.bgZoom)||100,bgDim:Number(m.bgDim)||0,bgX:Number(m.bgX)||0,bgY:Number(m.bgY)||0}
+  bgZoom:Number(m.bgZoom)||100,bgDim:Number(m.bgDim)||0,bgX:Number(m.bgX)||0,bgY:Number(m.bgY)||0,frameScale:Number(m.frameScale)||100,frameX:Number(m.frameX)||0,frameY:Number(m.frameY)||0}
 }
 async function payload(m){
  const art=await getBlob('art:'+m.id),card=await getBlob('card:'+m.id);
