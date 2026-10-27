@@ -40,8 +40,8 @@ for(let i=0;i<seeds.length;i++)clearColorRegion(c,seeds[i][0],seeds[i][1],tol);
 if(frame)clearColorRegion(c,Math.floor(x/2),Math.floor(y/2),tol);
 return c}
 function bbox(c){const {data}=c.getContext('2d').getImageData(0,0,c.width,c.height);let xmin=c.width,ymin=c.height,xmax=-1,ymax=-1;for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++){if(data[(y*c.width+x)*4+3]>10){xmin=Math.min(xmin,x);xmax=Math.max(xmax,x);ymin=Math.min(ymin,y);ymax=Math.max(ymax,y)}}return xmax<0?null:{x:xmin,y:ymin,w:xmax-xmin+1,h:ymax-ymin+1}}
-function artToSquare(){const c=blankCanvas(512,512),ctx=c.getContext('2d');if(!working)return c;let scale=numeric('scale',20,250)/100,xshift=numeric('shiftX',-160,160),yshift=numeric('shiftY',-160,160);if(processedArt){let sz=512*scale;ctx.drawImage(working,(512-sz)/2+xshift,(512-sz)/2+yshift,sz,sz);return c}let b=bbox(working);if(!b)return c;let dim=430*scale/Math.max(b.w,b.h),w=b.w*dim,h=b.h*dim;ctx.drawImage(working,b.x,b.y,b.w,b.h,(512-w)/2+xshift,(512-h)/2+yshift,w,h);return c}
-function compose(includeFrame){const c=artToSquare(),ctx=c.getContext('2d');if(includeFrame&&frameBitmap){const s=numeric('frameScale',70,125)/100,d=512*s;ctx.drawImage(frameBitmap,(512-d)/2+numeric('frameX',-256,256),(512-d)/2+numeric('frameY',-256,256),d,d)}return c}
+function artToSquare(){const c=blankCanvas(512,512),ctx=c.getContext('2d');if(!working)return c;let scale=numeric('scale',20,250)/100,xshift=numeric('shiftX',-256,256),yshift=numeric('shiftY',-256,256);if(processedArt){let sz=512*scale;ctx.drawImage(working,(512-sz)/2+xshift,(512-sz)/2+yshift,sz,sz);return c}let b=bbox(working);if(!b)return c;let dim=430*scale/Math.max(b.w,b.h),w=b.w*dim,h=b.h*dim;ctx.drawImage(working,b.x,b.y,b.w,b.h,(512-w)/2+xshift,(512-h)/2+yshift,w,h);return c}
+function compose(includeFrame){const c=artToSquare(),ctx=c.getContext('2d');if(includeFrame&&frameBitmap){const s=numeric('frameScale',40,180)/100,d=512*s;ctx.drawImage(frameBitmap,(512-d)/2+numeric('frameX',-256,256),(512-d)/2+numeric('frameY',-256,256),d,d)}return c}
 function repaint(){const c=compose(true);pctx.clearRect(0,0,512,512);pctx.drawImage(c,0,0);renderSelection()}
 function backgroundSource(id=activeBackground){return Number.isInteger(id)&&id>=1&&id<=backgroundPresets.length?backgroundPresets[id-1]:null}
 function backgroundStyle(){const preview=$('backgroundPreview'),shade=$('backgroundShade'),p=backgroundSource();const zoom=numeric('bgZoom',100,200)/100,dim=numeric('bgDim',0,75)/100;preview.hidden=!p;shade.hidden=!p;if(p){if(preview.getAttribute('src')!==p.src)preview.src=p.src;preview.style.transform='translate('+(numeric('bgX',-256,256)/512*100)+'%,'+(numeric('bgY',-256,256)/512*100)+'%) scale('+zoom+')';shade.style.background='rgba(0,0,0,'+dim+')'}else preview.removeAttribute('src');renderSelection()}
@@ -95,7 +95,7 @@ function layerPosition(k){const ids=layerInputs[k];return{x:Number($(ids[0]).val
 function layerRect(k){
  if(!layerReady(k))return null;
  const pos=layerPosition(k);
- if(k==='background')return{x:0,y:0,w:512,h:512};
+ if(k==='background'){const d=512*pos.scale/100;return{x:(512-d)/2+pos.x,y:(512-d)/2+pos.y,w:d,h:d}}
  if(k==='frame'){const d=512*pos.scale/100;return{x:(512-d)/2+pos.x,y:(512-d)/2+pos.y,w:d,h:d}}
  if(!workingBBox)return null;
  const b=workingBBox,scale=pos.scale/100;
