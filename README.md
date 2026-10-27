@@ -46,10 +46,10 @@ Imagens personalizadas e molduras são armazenadas pelo navegador em **IndexedDB
 
 **Recorte:** fotos JPG possuem antialias e fundos artificiais; nenhum recorte automático baseado em cores é perfeito em todas as imagens. Inspecione os detalhes, reduza a tolerância para preservar bordas e, em imagens complexas, refine externamente.
 
-### Instalar as nove molduras como predefinições permanentes
+### Molduras originais já instaladas
 
-O Ateliê busca automaticamente `assets/frames/frame-01.png` a `frame-09.png`. Elas são os nove PNGs transparentes feitos a partir das referências enviadas.
+As nove molduras transparentes foram publicadas como PNGs RGBA 900×900, sem recompressão, nos caminhos `assets/frames/frame-01.png` até `assets/frames/frame-09.png`.
 
-Para instalar no GitHub **uma única vez**, envie `Codex_Arcano_Molduras_Transparentes.zip` à raiz do repositório pela opção **Add file → Upload files**. O workflow `.github/workflows/install-frames.yml` extrai os nove PNGs para `assets/frames/` e faz o commit. Depois, qualquer visitante pode selecionar as molduras no Ateliê sem importar arquivos. A instalação depende da permissão do GitHub Actions para gravar no repositório; o processo fica visível em **Actions**.
+O [Ateliê de Itens](https://matheuz55peri-tech.github.io/Index-de-itens/studio.html) as carrega automaticamente. Não é necessário enviar ZIP, token ou arquivo pelo navegador.
 
-Alternativamente, extraia o ZIP e envie diretamente os nove arquivos `frame-01.png` a `frame-09.png` para `assets/frames/`. O Ateliê detecta os arquivos automaticamente.
+Links diretos reutilizáveis em outros sites: `https://matheuz55peri-tech.github.io/Index-de-itens/assets/frames/frame-01.png` (altere o número de 01 a 09).
