@@ -13,8 +13,36 @@ function saveJson(o,file){let a=document.createElement('a'),u=URL.createObjectUR
 const ids=new Set(),urls=new Map();
 async function reloadItems(){const list=readStudio(),known=new Set(list.map(x=>x.id));for(const it of [...ITEMS]){if(ids.has(it.id)&&!known.has(it.id)){ITEMS.splice(ITEMS.indexOf(it),1);ids.delete(it.id)}}for(const m of list){let it=ITEMS.find(x=>x.id===m.id);if(!it){it={id:m.id,name:m.name,group:Number(m.group)||1,category:category(m.group),number:ITEMS.length+1,emoji:'✦',image:''};ITEMS.push(it);ids.add(it.id)}it.name=m.name;it.group=Number(m.group)||1;it.category=category(it.group);it.number=ITEMS.indexOf(it)+1;const b=await asset('card:'+m.id)||await asset('art:'+m.id);if(b){let old=urls.get(m.id);if(old)URL.revokeObjectURL(old);it.image=URL.createObjectURL(b);urls.set(m.id,it.image)}}draw()}
 function tinyPng(src){return new Promise((resolve,reject)=>{if(!src){resolve(null);return}const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=180;c.height=180;let ctx=c.getContext('2d'),ratio=Math.min(180/img.width,180/img.height),w=ratio*img.width,h=ratio*img.height;ctx.drawImage(img,(180-w)/2,(180-h)/2,w,h);resolve(c.toDataURL('image/png'))};img.onerror=()=>resolve(null);img.src=src})}
-async function packOne(it){const m=itemMeta(it);if(m){const b=await asset('art:'+m.id),c=await asset('card:'+m.id),f=m.frame?await asset('frame:'+m.frame):null;return{format:'codex-item-v1',version:1,item:m,image:b?await asData(b):null,card:c?await asData(c):null,frameImage:f?await asData(f):null}}return{format:'codex-item-v1',version:1,item:{id:it.id,name:itemName(it),description:descriptions[it.id]||'',group:it.group,quantity:1,weight:0,damageDice:'',type:it.group===6?'✦':it.group>=3?'⚔':'◆',rarity:'Comum',bonuses:[]},image:it.image.startsWith('data:image/')?it.image:await tinyPng(it.image),card:await tinyPng(it.image)}}
-async function send(it){try{const p=await packOne(it);p.card=await tinyPng(it.image);localStorage.setItem(INBOX,JSON.stringify(p));window.open('https://matheuz55peri-tech.github.io/Deltarune-RPG/#codex-import','_blank');notify('Item enviado ao Delta RPG. Confira a aba INVENTÁRIO do FILE ativo.')}catch(e){notify('Não foi possível enviar: '+e.message)}}
+function packComposition(m){
+ const f=Math.trunc(Number(m.frame)||0),b=Math.trunc(Number(m.background)||0);
+ const bgExt=b>=3&&b<=6?'gif':'jpg';
+ const base='https://matheuz55peri-tech.github.io/Index-de-itens/';
+ return{iconShape:'circle',frameOutside:true,iconRadius:40,
+  frameUrl:f>0&&f<=9?base+'assets/frames/frame-'+String(f).padStart(2,'0')+'.png':null,
+  backgroundUrl:b>0&&b<=10?base+'assets/backgrounds/background-'+String(b).padStart(2,'0')+'.'+bgExt:null,
+  bgZoom:Number(m.bgZoom)||100,bgDim:Number(m.bgDim)||0,bgX:Number(m.bgX)||0,bgY:Number(m.bgY)||0}
+}
+async function packOne(it){
+ const m=itemMeta(it);
+ if(m){
+  const art=await asset('art:'+m.id),card=await asset('card:'+m.id),f=m.frame?await asset('frame:'+m.frame):null,original=await asset('source:'+m.id);
+  return{format:'codex-item-v1',version:2,item:m,composition:packComposition(m),
+   image:art?await asData(art):null,card:card?await asData(card):null,
+   frameImage:f?await asData(f):null,sourceImage:original?await asData(original):null}
+ }
+ return{format:'codex-item-v1',version:1,
+  item:{id:it.id,name:itemName(it),description:descriptions[it.id]||'',group:it.group,quantity:1,weight:0,damageDice:'',type:it.group===6?'✦':it.group>=3?'⚔':'◆',rarity:'Comum',bonuses:[]},
+  image:it.image.startsWith('data:image/')?it.image:await tinyPng(it.image),card:await tinyPng(it.image)}
+}
+async function send(it){
+ try{
+  const p=await packOne(it);
+  if(p.version===2&&p.image){p.image=await tinyPng(p.image);p.card=await tinyPng(it.image)}
+  localStorage.setItem(INBOX,JSON.stringify(p));
+  window.open('https://matheuz55peri-tech.github.io/Deltarune-RPG/#codex-import','_blank');
+  notify('Item enviado ao Delta RPG com ícone redondo, moldura externa, fundo e atributos.')
+ }catch(e){notify('Não foi possível enviar: '+e.message)}
+}
 const link=document.createElement('a');link.className='primary';link.textContent='✦ Criar item';link.href='studio.html';link.style.textDecoration='none';link.style.display='inline-flex';link.style.alignItems='center';el('favoritesBtn').before(link);
 const modalButtons=el('modal').querySelector('.editoractions');
 const advanced=document.createElement('button');advanced.type='button';advanced.className='minor';advanced.textContent='✦ Editar no ateliê';
@@ -23,14 +51,25 @@ const exportItem=document.createElement('button');exportItem.type='button';expor
 const delta=document.createElement('button');delta.type='button';delta.className='minor';delta.textContent='♥ Delta RPG';delta.onclick=()=>active&&send(active);
 modalButtons.prepend(advanced,exportItem,delta);modalButtons.style.flexWrap='wrap';
 const bgExt={1:'jpg',2:'jpg',3:'gif',4:'gif',5:'gif',6:'gif',7:'jpg',8:'jpg',9:'jpg',10:'jpg'};
-const bgCSS=document.createElement('style');bgCSS.textContent=`
-.card-art>.codex-item-background,.visual>.codex-item-background{display:block;position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;image-rendering:auto;filter:none;transform-origin:center;z-index:0;pointer-events:none}
-.card-art>.codex-item-shade,.visual>.codex-item-shade{position:absolute;inset:0;z-index:1;pointer-events:none}
-.card-art>img:not(.codex-item-background){position:relative;z-index:2}
-.card-art>.gem,.card-art>.fav{z-index:3}
-.visual>#bigImage{position:relative;z-index:2}
-`;document.head.append(bgCSS);
-function applyItemBackground(host,m){if(!host)return;host.querySelectorAll(':scope > .codex-item-background,:scope > .codex-item-shade').forEach(x=>x.remove());const id=Number(m?.background)||0;if(!bgExt[id])return;const bg=document.createElement('img');bg.className='codex-item-background';bg.src='assets/backgrounds/background-'+String(id).padStart(2,'0')+'.'+bgExt[id];bg.alt='';bg.setAttribute('aria-hidden','true');bg.loading='lazy';bg.style.transform='translate('+Math.max(-50,Math.min(50,(Number(m.bgX)||0)/512*100))+'%,'+Math.max(-50,Math.min(50,(Number(m.bgY)||0)/512*100))+'%) scale('+Math.max(1,Math.min(2,(Number(m.bgZoom)||100)/100))+')';const shade=document.createElement('span');shade.className='codex-item-shade';shade.style.background='rgba(0,0,0,'+Math.max(0,Math.min(.75,(Number(m.bgDim)||0)/100))+')';host.prepend(bg,shade)}
+const bgCSS=document.createElement('style');bgCSS.textContent=
+ '.card-art>.codex-item-disc,.visual>.codex-item-disc{position:absolute;inset:0;display:block;z-index:0;clip-path:circle(40% at 50% 50%);pointer-events:none}'
+ +'.codex-item-disc>.codex-item-background{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;transform-origin:center;image-rendering:auto;max-width:none;max-height:none;filter:none}'
+ +'.codex-item-disc>.codex-item-shade{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}'
+ +'.card-art>img:not(.codex-item-background){position:relative;z-index:2}.card-art>.gem,.card-art>.fav{z-index:3}'
+ +'.visual>#bigImage{position:relative;z-index:2}';
+document.head.append(bgCSS);
+function applyItemBackground(host,m){
+ if(!host)return;
+ host.querySelectorAll(':scope > .codex-item-disc,:scope > .codex-item-background,:scope > .codex-item-shade').forEach(x=>x.remove());
+ const id=Number(m?.background)||0;if(!bgExt[id])return;
+ const disc=document.createElement('span');disc.className='codex-item-disc';
+ const bg=document.createElement('img');bg.className='codex-item-background';
+ bg.src='assets/backgrounds/background-'+String(id).padStart(2,'0')+'.'+bgExt[id];bg.alt='';bg.setAttribute('aria-hidden','true');bg.loading='lazy';
+ bg.style.transform='translate('+Math.max(-50,Math.min(50,(Number(m.bgX)||0)/512*100))+'%,'+Math.max(-50,Math.min(50,(Number(m.bgY)||0)/512*100))+'%) scale('+Math.max(1,Math.min(2,(Number(m.bgZoom)||100)/100))+')';
+ const shade=document.createElement('span');shade.className='codex-item-shade';
+ shade.style.background='rgba(0,0,0,'+Math.max(0,Math.min(.75,(Number(m.bgDim)||0)/100))+')';
+ disc.append(bg,shade);host.prepend(disc)
+}
 const originalDraw=draw;draw=function(){originalDraw();for(const card of el('grid').querySelectorAll('.card[data-item-id]')){const id=card.dataset.itemId,m=readStudio().find(x=>x.id===id);if(m?.background)applyItemBackground(card.querySelector('.card-art'),m)}};
 const defaultOpen=openItem;openItem=function(it){defaultOpen(it);const m=itemMeta(it);advanced.hidden=!Boolean(m);applyItemBackground(el('visual'),m);};
 const exportBtn=el('exportBtn'),file=el('importFile');
