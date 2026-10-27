@@ -17,10 +17,10 @@
 <div class="section"><h3>Posição do item</h3></div>
 <div class="grid2"><div class="field"><label for="scale">Escala</label><input type="range" id="scale" min="30" max="155" value="85"></div><div class="field"><label for="shiftX">Horizontal</label><input type="range" id="shiftX" min="-160" max="160" value="0"></div><div class="field"><label for="shiftY">Vertical</label><input type="range" id="shiftY" min="-160" max="160" value="0"></div><div class="field"><label for="frameScale">Escala da moldura</label><input type="range" id="frameScale" min="70" max="125" value="100"></div></div>
 <div class="section"><h3>02 · Molduras</h3></div>
-<p class="note">Selecione uma das nove molduras enviadas ou importe suas versões PNG. O recorte da moldura remove fundo externo e centro.</p>
+<p class="note">As nove molduras predefinidas são carregadas automaticamente dos arquivos do site. Também é possível adicionar suas próprias versões em PNG.</p>
 <div id="frames" class="frames"></div>
-<div class="pack"><label class="btn" for="frameFiles">＋ Importar molduras (até 9)</label><input type="file" id="frameFiles" accept="image/*" multiple hidden><button class="btn" id="cutFrame">✂ Recortar moldura atual</button><button class="btn" id="getFrame">⇩ PNG da moldura</button></div>
-<p class="subtle">Os arquivos originais enviados são referências para estes nove espaços. Ao importar seus PNGs, ficam armazenados neste navegador e podem entrar no backup.</p>
+<div class="pack"><label class="btn" for="frameFiles">＋ Substituir molduras (opcional)</label><input type="file" id="frameFiles" accept="image/*" multiple hidden><button class="btn" id="cutFrame">✂ Recortar moldura atual</button><button class="btn" id="getFrame">⇩ PNG da moldura</button></div>
+<p class="subtle">Os nove estilos originais fazem parte da biblioteca do site. Substituições opcionais ficam somente neste navegador e podem entrar no backup.</p>
 </section><section class="pane">
 <h2>03 · Identidade e atributos</h2>
 <form id="itemForm"><div class="field"><label for="name">Nome do item *</label><input id="name" required maxlength="120" placeholder="Ex.: Lâmina das Marés"></div>
