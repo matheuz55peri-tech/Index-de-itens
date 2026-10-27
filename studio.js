@@ -85,7 +85,120 @@ $('itemInput').onchange=async e=>{try{await importPayload(JSON.parse(await e.tar
 $('backup').onclick=async()=>{try{const assets={};for(let i=1;i<=9;i++){let b=await frameSource(i);if(b)assets['frame:'+i]=await toBase64(b)}for(let m of items){for(let t of ['art:','source:','card:']){let b=await getBlob(t+m.id);if(b)assets[t+m.id]=await toBase64(b)}}dl(jsonBlob({format:'codex-studio-backup-v1',items,assets}),'codex_studio_backup.json');message('Backup completo salvo.')}catch(e){message(e.message)}};
 $('restore').onclick=()=>$('backupInput').click();
 $('backupInput').onchange=async e=>{try{let o=JSON.parse(await e.target.files[0].text());if(o.format!=='codex-studio-backup-v1'||!Array.isArray(o.items))throw Error('Backup inválido.');for(let [key,data]of Object.entries(o.assets||{})){if(/^(frame:\d|art:custom_|source:custom_|card:custom_)/.test(key))await putBlob(key,fromDataUrl(data))}items=o.items;saveMetadata();refreshItems();await reloadFrameURLs();resetForm();message('Backup restaurado com imagens e molduras.')}catch(err){message('Falha ao importar backup: '+err.message)}e.target.value=''};
-/* visual editor controller inserted below */
+/* Editor visual em camadas. Coordenadas normalizadas: 512 x 512. */
+const editor=$('visualEditor'),selectionBox=$('selectionBox');
+const layerInputs={item:['shiftX','shiftY','scale'],frame:['frameX','frameY','frameScale'],background:['bgX','bgY','bgZoom']};
+const layerLabels={item:'Item',frame:'Moldura',background:'Fundo'};
+const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
+function layerReady(k){return k==='item'?!!working:k==='frame'?!!frameBitmap:!!backgroundSource()}
+function layerPosition(k){const ids=layerInputs[k];return{x:Number($(ids[0]).value)||0,y:Number($(ids[1]).value)||0,scale:Number($(ids[2]).value)||100}}
+function layerRect(k){
+ if(!layerReady(k))return null;
+ const pos=layerPosition(k);
+ if(k==='background')return{x:0,y:0,w:512,h:512};
+ if(k==='frame'){const d=512*pos.scale/100;return{x:(512-d)/2+pos.x,y:(512-d)/2+pos.y,w:d,h:d}}
+ if(!workingBBox)return null;
+ const b=workingBBox,scale=pos.scale/100;
+ if(processedArt){const dim=512*scale;return{x:(512-dim)/2+pos.x+b.x/working.width*dim,y:(512-dim)/2+pos.y+b.y/working.height*dim,w:b.w/working.width*dim,h:b.h/working.height*dim}}
+ const f=430*scale/Math.max(b.w,b.h),w=b.w*f,h=b.h*f;
+ return{x:(512-w)/2+pos.x,y:(512-h)/2+pos.y,w,h}
+}
+function renderSelection(){
+ if(!selectionBox)return;
+ const rect=layerRect(editLayer);selectionBox.hidden=!rect;
+ if(!rect){updatePositionControls();return}
+ selectionBox.dataset.layer=editLayer;
+ $('selectionCaption').textContent=layerLabels[editLayer];
+ selectionBox.style.left=rect.x/512*100+'%';
+ selectionBox.style.top=rect.y/512*100+'%';
+ selectionBox.style.width=rect.w/512*100+'%';
+ selectionBox.style.height=rect.h/512*100+'%';
+ updatePositionControls()
+}
+function updatePositionControls(){
+ const r=layerRect(editLayer),description=$('positionDescription');
+ description.textContent=(r?'Editando ':'Selecione uma imagem para editar: ')+layerLabels[editLayer]+' · alinhamento da página 512 × 512.';
+ if(r){$('positionX').value=Math.round(r.x+r.w/2);$('positionY').value=Math.round(r.y+r.h/2)}
+ else{$('positionX').value='';$('positionY').value=''}
+ for(const id of ['positionX','positionY','positionCenterX','positionCenterY','positionCenterBoth','positionReset'])$(id).disabled=!r;
+}
+function selectEditLayer(k){
+ if(!layerInputs[k])return;
+ editLayer=k;
+ document.querySelectorAll('[data-edit-layer]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.editLayer===k)));
+ clearGuides();renderSelection()
+}
+function setLayerPosition(k,x,y){
+ const ids=layerInputs[k];$(ids[0]).value=String(clamp(Math.round(x),-256,256));$(ids[1]).value=String(clamp(Math.round(y),-256,256));
+ if(k==='background')backgroundStyle();else repaint();
+ updatePositionControls()
+}
+function setLayerScale(k,scale){
+ const id=layerInputs[k][2],el=$(id);
+ el.value=String(clamp(Math.round(scale),Number(el.min),Number(el.max)));
+ if(k==='background')backgroundStyle();else repaint();
+}
+function editorPoint(e){const rect=editor.getBoundingClientRect();return{x:(e.clientX-rect.left)*512/rect.width,y:(e.clientY-rect.top)*512/rect.height}}
+function showGuides(x,y){$('guideVertical').classList.toggle('show',!!x);$('guideHorizontal').classList.toggle('show',!!y);$('guideCenter').classList.toggle('show',!!x&&!!y)}
+function clearGuides(){showGuides(false,false)}
+function alignLayer(axis){
+ const r=layerRect(editLayer);if(!r)return;
+ const p=layerPosition(editLayer);
+ let x=p.x,y=p.y;
+ if(axis==='x'||axis==='both')x+=256-(r.x+r.w/2);
+ if(axis==='y'||axis==='both')y+=256-(r.y+r.h/2);
+ setLayerPosition(editLayer,x,y);
+ showGuides(axis!=='y',axis!=='x');
+ editor.focus({preventScroll:true});
+}
+document.querySelectorAll('[data-edit-layer]').forEach(b=>b.addEventListener('click',()=>{selectEditLayer(b.dataset.editLayer);editor.focus({preventScroll:true})}));
+$('togglePosition').onclick=()=>{const p=$('positionPanel');p.hidden=!p.hidden;$('togglePosition').setAttribute('aria-expanded',String(!p.hidden));updatePositionControls()};
+$('positionCenterX').onclick=()=>alignLayer('x');
+$('positionCenterY').onclick=()=>alignLayer('y');
+$('positionCenterBoth').onclick=()=>alignLayer('both');
+$('positionReset').onclick=()=>{setLayerPosition(editLayer,0,0);setLayerScale(editLayer,editLayer==='item'?100:100);clearGuides()};
+for(const [field,axis] of [['positionX','x'],['positionY','y']]){
+ $(field).addEventListener('change',e=>{const r=layerRect(editLayer);if(!r)return;const current=axis==='x'?r.x+r.w/2:r.y+r.h/2,target=Number(e.target.value);if(!Number.isFinite(target))return;const p=layerPosition(editLayer);setLayerPosition(editLayer,p.x+(axis==='x'?target-current:0),p.y+(axis==='y'?target-current:0))})
+}
+editor.addEventListener('pointerdown',e=>{
+ if(e.button!==0&&e.pointerType==='mouse')return;
+ if(!layerReady(editLayer))return;
+ const p=editorPoint(e),r=layerRect(editLayer),position=layerPosition(editLayer);
+ if(!r)return;
+ const knob=e.target.closest?.('[data-resize]'),mode=knob?'resize':'move';
+ const mid={x:r.x+r.w/2,y:r.y+r.h/2};
+ dragState={id:e.pointerId,layer:editLayer,mode,origin:p,rect:r,position,startDistance:Math.max(15,Math.hypot(p.x-mid.x,p.y-mid.y))};
+ editor.setPointerCapture(e.pointerId);editor.classList.add('is-dragging');editor.focus({preventScroll:true});e.preventDefault()
+});
+editor.addEventListener('pointermove',e=>{
+ if(!dragState||dragState.id!==e.pointerId)return;
+ const d=dragState,p=editorPoint(e);
+ if(d.mode==='resize'){
+  const mid={x:d.rect.x+d.rect.w/2,y:d.rect.y+d.rect.h/2};
+  const distance=Math.max(4,Math.hypot(p.x-mid.x,p.y-mid.y));
+  setLayerScale(d.layer,d.position.scale*distance/d.startDistance);
+  clearGuides();
+ }else{
+  const dx=p.x-d.origin.x,dy=p.y-d.origin.y;
+  let x=d.position.x+dx,y=d.position.y+dy;
+  const cx=d.rect.x+d.rect.w/2+dx,cy=d.rect.y+d.rect.h/2+dy;
+  const tol=7.5,sx=Math.abs(cx-256)<=tol,sy=Math.abs(cy-256)<=tol;
+  if(sx)x+=256-cx;
+  if(sy)y+=256-cy;
+  setLayerPosition(d.layer,x,y);showGuides(sx,sy)
+ }
+ e.preventDefault()
+});
+function endEditorDrag(e){if(!dragState||dragState.id!==e.pointerId)return;dragState=null;editor.classList.remove('is-dragging');clearGuides();try{editor.releasePointerCapture(e.pointerId)}catch(_){}}
+editor.addEventListener('pointerup',endEditorDrag);
+editor.addEventListener('pointercancel',endEditorDrag);
+editor.addEventListener('lostpointercapture',()=>{dragState=null;editor.classList.remove('is-dragging');clearGuides()});
+editor.addEventListener('keydown',e=>{
+ const move={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];
+ if(!move||!layerReady(editLayer)||e.target!==editor)return;
+ const p=layerPosition(editLayer),step=e.shiftKey?10:1;
+ setLayerPosition(editLayer,p.x+move[0]*step,p.y+move[1]*step);clearGuides();e.preventDefault()
+});
 async function initialize(){try{selectBackground(0);await dbPromise;await reloadFrameURLs();await chooseFrame(0);refreshItems();const id=new URLSearchParams(location.search).get('edit');if(id)await editItem(id)}catch(err){message('O navegador não permitiu abrir o banco de imagens. Use um navegador com armazenamento local habilitado.')}repaint()}
 initialize();
 })();
