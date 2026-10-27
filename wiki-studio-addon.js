@@ -20,7 +20,7 @@ function packComposition(m){
  return{iconShape:'circle',frameOutside:true,iconRadius:40,
   frameUrl:f>0&&f<=9?base+'assets/frames/frame-'+String(f).padStart(2,'0')+'.png':null,
   backgroundUrl:b>0&&b<=10?base+'assets/backgrounds/background-'+String(b).padStart(2,'0')+'.'+bgExt:null,
-  bgZoom:Number(m.bgZoom)||100,bgDim:Number(m.bgDim)||0,bgX:Number(m.bgX)||0,bgY:Number(m.bgY)||0}
+  bgZoom:Number(m.bgZoom)||100,bgDim:Number(m.bgDim)||0,bgX:Number(m.bgX)||0,bgY:Number(m.bgY)||0,frameScale:Number(m.frameScale)||100,frameX:Number(m.frameX)||0,frameY:Number(m.frameY)||0}
 }
 async function packOne(it){
  const m=itemMeta(it);
