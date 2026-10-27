@@ -1,0 +1,79 @@
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const STORE='codex_studio_items_v1', DB_NAME='codex-arcano-assets', DB_STORE='blobs';
+const frameNames=['Nuvens Rosadas','Dragão Celestial','Filigrana Dourada','Floresta Musical','Flores de Sakura','Vitral Multicolor','Tulipas de Vidro','Flores de Outono','Jardim Ametista'];
+const groups={1:'Itens e Consumíveis',2:'Flores Místicas',3:'Arsenal Carmesim',4:'Arsenal Glacial',5:'Espadas Encantadas',6:'Artefatos'};
+const preview=$('preview'), pctx=preview.getContext('2d'), source=$('source');
+const dbPromise=new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(DB_STORE))req.result.createObjectStore(DB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+const transaction=(kind,method,key,val)=>dbPromise.then(db=>new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,kind),rq=tx.objectStore(DB_STORE)[method](...(method==='put'?[val,key]:[key]));rq.onsuccess=()=>resolve(rq.result);rq.onerror=()=>reject(rq.error)}));
+const getBlob=key=>transaction('readonly','get',key);
+const putBlob=(key,val)=>transaction('readwrite','put',key,val);
+const delBlob=key=>transaction('readwrite','delete',key);
+let items=[];try{let a=JSON.parse(localStorage.getItem(STORE)||'[]');if(Array.isArray(a))items=a}catch(e){}
+let activeId=null,activeFrame=0,original=null,working=null,frameBitmap=null,customFrameUrls={},artURLs=[];
+let cutAt=0;
+function message(s){$('status').textContent=s;$('status').style.display='block'}
+function saveMetadata(){localStorage.setItem(STORE,JSON.stringify(items))}
+function numeric(id,min=0,max=9999){return Math.max(min,Math.min(max,Number($(id).value)||0))}
+function field(id){return $(id).value.trim()}
+function uid(){return 'custom_'+(globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2))}
+function readImg(blob){return createImageBitmap(blob)}
+function pngBlob(c){return new Promise(resolve=>c.toBlob(resolve,'image/png'))}
+function blankCanvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c}
+function dl(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2500)}
+function jsonBlob(o){return new Blob([JSON.stringify(o,null,2)],{type:'application/json'})}
+function toBase64(b){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.readAsDataURL(b)})}
+function fromDataUrl(src){if(typeof src!=='string'||!src.startsWith('data:image/'))throw Error('Imagem inválida');const cut=src.indexOf(',');const mime=src.substring(5,src.indexOf(';'));const bytes=atob(src.slice(cut+1));const out=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)out[i]=bytes.charCodeAt(i);return new Blob([out],{type:mime||'image/png'})}
+async function loadCanvas(blob,max=850){const bm=await readImg(blob),scale=Math.min(1,max/Math.max(bm.width,bm.height)),w=Math.max(1,Math.round(bm.width*scale)),h=Math.max(1,Math.round(bm.height*scale)),c=blankCanvas(w,h);c.getContext('2d',{willReadFrequently:true}).drawImage(bm,0,0,w,h);bm.close?.();return c}
+function duplicate(c){let d=blankCanvas(c.width,c.height);d.getContext('2d').drawImage(c,0,0);return d}
+function clearColorRegion(c,x,y,tol){const w=c.width,h=c.height;if(x<0||y<0||x>=w||y>=h)return;const ctx=c.getContext('2d',{willReadFrequently:true}),img=ctx.getImageData(0,0,w,h),data=img.data,n=w*h;
+const start=y*w+x,s=start*4,ref=[data[s],data[s+1],data[s+2]];if(data[s+3]===0)return;
+const tolSq=tol*tol*3,visited=new Uint8Array(n),queue=new Int32Array(n);let front=0,back=0;queue[back++]=start;visited[start]=1;
+while(front<back){let v=queue[front++],i=v*4;const dr=data[i]-ref[0],dg=data[i+1]-ref[1],db=data[i+2]-ref[2];if(data[i+3]===0||dr*dr+dg*dg+db*db>tolSq)continue;data[i+3]=0;
+const xx=v%w,yy=(v-xx)/w;function add(q){if(!visited[q]){visited[q]=1;queue[back++]=q}}if(xx>0)add(v-1);if(xx<w-1)add(v+1);if(yy>0)add(v-w);if(yy<h-1)add(v+w);
+}ctx.putImageData(img,0,0)}
+function cutBackground(c,tol,frame){let x=c.width,y=c.height;const seeds=[[1,1],[x-2,1],[1,y-2],[x-2,y-2]];
+// Bordas variáveis: amostras extras removem branco, preto e fundos quase uniformes.
+for(let i=0;i<seeds.length;i++)clearColorRegion(c,seeds[i][0],seeds[i][1],tol);
+if(frame)clearColorRegion(c,Math.floor(x/2),Math.floor(y/2),tol);
+return c}
+function bbox(c){const {data}=c.getContext('2d').getImageData(0,0,c.width,c.height);let xmin=c.width,ymin=c.height,xmax=-1,ymax=-1;for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++){if(data[(y*c.width+x)*4+3]>10){xmin=Math.min(xmin,x);xmax=Math.max(xmax,x);ymin=Math.min(ymin,y);ymax=Math.max(ymax,y)}}return xmax<0?null:{x:xmin,y:ymin,w:xmax-xmin+1,h:ymax-ymin+1}}
+function artToSquare(){const c=blankCanvas(512,512),ctx=c.getContext('2d');if(!working)return c;let b=bbox(working);if(!b)return c;let scale=numeric('scale',30,155)/100,dim=430*scale/Math.max(b.w,b.h),w=b.w*dim,h=b.h*dim,x=(512-w)/2+numeric('shiftX',-160,160),y=(512-h)/2+numeric('shiftY',-160,160);ctx.drawImage(working,b.x,b.y,b.w,b.h,x,y,w,h);return c}
+function compose(includeFrame){const c=artToSquare(),ctx=c.getContext('2d');if(includeFrame&&frameBitmap){const s=numeric('frameScale',70,125)/100,d=512*s;ctx.drawImage(frameBitmap,(512-d)/2,(512-d)/2,d,d)}return c}
+function repaint(){const c=compose(true);pctx.clearRect(0,0,512,512);pctx.drawImage(c,0,0)}
+function showWorking(){if(!working){source.hidden=true;repaint();return}source.hidden=false;source.width=working.width;source.height=working.height;source.style.maxHeight='345px';const c=source.getContext('2d');c.clearRect(0,0,source.width,source.height);c.drawImage(working,0,0);repaint()}
+async function setArt(blob,isProcessed){if(!blob){original=null;working=null;showWorking();return}const c=await loadCanvas(blob);original=duplicate(c);working=duplicate(c);showWorking()}
+$('artFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{await setArt(f);message('Imagem carregada. Use remover fundo e ajuste a escala.')}catch(err){message('Erro ao abrir imagem: '+err.message)}});
+$('tol').addEventListener('input',e=>{$('tolLabel').textContent=e.target.value});
+$('autoCut').onclick=()=>{if(!original){message('Primeiro escolha uma imagem.');return}working=cutBackground(duplicate(original),numeric('tol',8,130),false);showWorking();message('Fundo externo removido. Confira a borda e clique em áreas restantes para ajustar.')};
+$('resetCut').onclick=()=>{if(original){working=duplicate(original);showWorking();message('Imagem original restaurada.')}};
+source.addEventListener('click',e=>{if(!working)return;const r=source.getBoundingClientRect(),x=Math.max(0,Math.min(source.width-1,Math.floor((e.clientX-r.left)*source.width/r.width))),y=Math.max(0,Math.min(source.height-1,Math.floor((e.clientY-r.top)*source.height/r.height)));clearColorRegion(working,x,y,numeric('tol',8,130));showWorking()});
+for(const id of ['scale','shiftX','shiftY','frameScale'])$(id).addEventListener('input',repaint);
+$('saveSprite').onclick=async()=>dl(await pngBlob(artToSquare()),'sprite-sem-fundo.png');
+$('exportPNG').onclick=async()=>dl(await pngBlob(compose(true)),(field('name')||'item').replace(/[^\p{L}\p{N}-]+/gu,'_')+'.png');
+function setupFrames(){const root=$('frames');root.replaceChildren();for(let i=0;i<=9;i++){const b=document.createElement('button');b.className='frame';b.type='button';b.dataset.frame=i;b.setAttribute('aria-pressed',String(activeFrame===i));b.title=i?'Moldura '+i+' — '+frameNames[i-1]:'Nenhuma moldura';const glyph=document.createElement('span');glyph.textContent=i?'◯':'∅';b.append(glyph);if(i){const img=document.createElement('img');img.alt='';img.src=customFrameUrls[i]||'assets/frames/frame-'+String(i).padStart(2,'0')+'.png';img.onerror=()=>{img.hidden=true};b.append(img)}const small=document.createElement('small');small.textContent=i?'0'+i:'Sem';b.append(small);b.onclick=()=>chooseFrame(i);root.append(b)}}
+async function chooseFrame(i){activeFrame=i;frameBitmap?.close?.();frameBitmap=null;if(i){let blob=await getBlob('frame:'+i);if(!blob){try{let res=await fetch('assets/frames/frame-'+String(i).padStart(2,'0')+'.png');if(res.ok)blob=await res.blob()}catch(e){}}if(blob){try{frameBitmap=await readImg(blob)}catch(e){}}}setupFrames();repaint()}
+$('frameFiles').addEventListener('change',async e=>{const files=[...e.target.files].slice(0,9);let n=0;for(let i=0;i<files.length;i++){const f=files[i];if(!f.type.startsWith('image/'))continue;const index=i+1;let c=await loadCanvas(f,1024);if(!f.type.includes('png'))cutBackground(c,numeric('tol',8,130),true);let png=await pngBlob(c);await putBlob('frame:'+index,png);n++}message(n+' moldura(s) importada(s). Cada moldura pode ser escolhida pelo número.');await reloadFrameURLs();await chooseFrame(files.length?1:activeFrame);e.target.value=''});
+async function reloadFrameURLs(){Object.values(customFrameUrls).forEach(u=>URL.revokeObjectURL(u));customFrameUrls={};for(let i=1;i<=9;i++){let b=await getBlob('frame:'+i);if(b)customFrameUrls[i]=URL.createObjectURL(b)}setupFrames()}
+$('cutFrame').onclick=async()=>{if(!activeFrame){message('Selecione uma moldura.');return}let b=await getBlob('frame:'+activeFrame);if(!b){message('Importe esta moldura primeiro para recortar o fundo.');return}let c=await loadCanvas(b,1024);cutBackground(c,numeric('tol',8,130),true);await putBlob('frame:'+activeFrame,await pngBlob(c));await reloadFrameURLs();await chooseFrame(activeFrame);message('Moldura recortada. Se a imagem original tiver baixa qualidade, os contornos poderão precisar de retoque.')};
+$('getFrame').onclick=async()=>{if(!activeFrame)return message('Escolha uma moldura.');let b=await getBlob('frame:'+activeFrame);if(!b)return message('Importe a moldura para baixar seu PNG.');dl(b,'moldura-'+activeFrame+'.png')};
+function readItemForm(){const bonuses=[];for(const stat of ['strength','defense','intelligence','agility']){const value=Math.trunc(numeric(stat,0,999));if(value)bonuses.push({stat,value})}return{id:activeId||uid(),name:field('name').slice(0,120),group:Math.trunc(numeric('category',1,6)),type:field('type'),rarity:field('rarity'),quantity:Math.trunc(numeric('quantity',1,9999)),weight:numeric('weight',0,9999),damageDice:field('damageDice').slice(0,40),description:field('description').slice(0,3000),tags:field('tags'),effect:field('effect'),bonuses,frame:activeFrame,updatedAt:new Date().toISOString()}}
+async function saveCurrent(){let m=readItemForm();if(!m.name)throw Error('Digite o nome do item.');if(!working)throw Error('Adicione uma imagem para o item.');await putBlob('art:'+m.id,await pngBlob(artToSquare()));await putBlob('card:'+m.id,await pngBlob(compose(true)));let index=items.findIndex(x=>x.id===m.id);if(index>=0)items[index]=m;else items.unshift(m);saveMetadata();activeId=m.id;refreshItems();window.dispatchEvent(new Event('codex:items-changed'));return m}
+$('itemForm').addEventListener('submit',async e=>{e.preventDefault();try{let m=await saveCurrent();message('Item "'+m.name+'" salvo no navegador! Volte à wiki para vê-lo na coleção.')}catch(err){message(err.message)}});
+async function payload(m){const art=await getBlob('art:'+m.id),card=await getBlob('card:'+m.id),frame=m.frame?await getBlob('frame:'+m.frame):null;return{format:'codex-item-v1',version:1,item:m,image:art?await toBase64(art):null,card:card?await toBase64(card):null,frameImage:frame?await toBase64(frame):null}}
+$('exportItem').onclick=async()=>{try{const m=await saveCurrent();dl(jsonBlob(await payload(m)),m.name.replace(/[^\p{L}\p{N}-]+/gu,'_')+'.codex.json');message('Item exportado como JSON, com imagem e atributos.')}catch(e){message(e.message)}};
+$('sendDelta').onclick=async()=>{try{const m=await saveCurrent();let c=compose(true),tiny=blankCanvas(180,180);tiny.getContext('2d').drawImage(c,0,0,180,180);const p={format:'codex-item-v1',version:1,item:m,card:tiny.toDataURL('image/png')};localStorage.setItem('codex-delta-inbox-v1',JSON.stringify(p));window.open('https://matheuz55peri-tech.github.io/Deltarune-RPG/#codex-import','_blank');message('Transferência enviada. O Delta RPG deverá mostrar o item no FILE ativo.')}catch(e){message('Erro no envio: '+e.message)}};
+function refreshItems(){let root=$('itemList');root.replaceChildren();if(!items.length){root.textContent='Nenhum item criado ainda.';return}for(const it of items){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=it.name+' · '+(groups[it.group]||'Itens');b.onclick=()=>editItem(it.id);root.append(b)}}
+function resetForm(){activeId=null;$('itemForm').reset();$('scale').value=85;$('shiftX').value=0;$('shiftY').value=0;$('frameScale').value=100;original=null;working=null;$('artFile').value='';showWorking();chooseFrame(0);message('Nova ficha iniciada.')}
+$('new').onclick=resetForm;
+async function editItem(id){let m=items.find(x=>x.id===id);if(!m)return;activeId=id;for(let k of ['name','group','type','rarity','quantity','weight','damageDice','description','tags','effect']){let id2=k==='group'?'category':k;if($(id2))$(id2).value=m[k]??''}for(let stat of ['strength','defense','intelligence','agility'])$(stat).value=(m.bonuses||[]).find(x=>x.stat===stat)?.value||0;let art=await getBlob('art:'+id);await setArt(art||null,true);await chooseFrame(Number(m.frame)||0);window.scrollTo({top:0,behavior:'smooth'});message('Editando: '+m.name)}
+async function importPayload(o){if(o?.format!=='codex-item-v1'||!o.item||!o.image)throw Error('Arquivo não contém um item Codex válido.');let m={...o.item,id:uid()};if(o.image)await putBlob('art:'+m.id,fromDataUrl(o.image));if(o.frameImage&&m.frame){await putBlob('frame:'+m.frame,fromDataUrl(o.frameImage));await reloadFrameURLs()}if(o.card)await putBlob('card:'+m.id,fromDataUrl(o.card));items.unshift(m);saveMetadata();refreshItems();await editItem(m.id);message('Item importado com sucesso!')}
+$('importItem').onclick=()=>$('itemInput').click();
+$('itemInput').onchange=async e=>{try{await importPayload(JSON.parse(await e.target.files[0].text()))}catch(err){message(err.message)}e.target.value=''};
+$('backup').onclick=async()=>{try{const assets={};for(let i=1;i<=9;i++){let b=await getBlob('frame:'+i);if(b)assets['frame:'+i]=await toBase64(b)}for(let m of items){for(let t of ['art:','card:']){let b=await getBlob(t+m.id);if(b)assets[t+m.id]=await toBase64(b)}}dl(jsonBlob({format:'codex-studio-backup-v1',items,assets}),'codex_studio_backup.json');message('Backup completo salvo.')}catch(e){message(e.message)}};
+$('restore').onclick=()=>$('backupInput').click();
+$('backupInput').onchange=async e=>{try{let o=JSON.parse(await e.target.files[0].text());if(o.format!=='codex-studio-backup-v1'||!Array.isArray(o.items))throw Error('Backup inválido.');for(let [key,data]of Object.entries(o.assets||{})){if(/^(frame:\d|art:custom_|card:custom_)/.test(key))await putBlob(key,fromDataUrl(data))}items=o.items;saveMetadata();refreshItems();await reloadFrameURLs();resetForm();message('Backup restaurado com imagens e molduras.')}catch(err){message('Falha ao importar backup: '+err.message)}e.target.value=''};
+async function initialize(){try{await dbPromise;await reloadFrameURLs();await chooseFrame(0);refreshItems();const id=new URLSearchParams(location.search).get('edit');if(id)await editItem(id)}catch(err){message('O navegador não permitiu abrir o banco de imagens. Use um navegador com armazenamento local habilitado.')}repaint()}
+initialize();
+})();
