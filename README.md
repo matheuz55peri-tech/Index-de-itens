@@ -53,3 +53,16 @@ As nove molduras transparentes foram publicadas como PNGs RGBA 900×900, sem rec
 O [Ateliê de Itens](https://matheuz55peri-tech.github.io/Index-de-itens/studio.html) as carrega automaticamente. Não é necessário enviar ZIP, token ou arquivo pelo navegador.
 
 Links diretos reutilizáveis em outros sites: `https://matheuz55peri-tech.github.io/Index-de-itens/assets/frames/frame-01.png` (altere o número de 01 a 09).
+
+
+### Fundos estáticos e animados para os itens
+
+O Ateliê oferece **10 fundos predefinidos originais** em `assets/backgrounds/`, incluindo **6 JPG e 4 GIF animados**. Todos foram enviados sem recompressão, conservando a qualidade, o tamanho e a sequência de quadros dos arquivos recebidos. O [catálogo de fundos](assets/backgrounds/manifest.json) inclui nomes, resolução, quantidade de quadros e URLs diretas.
+
+No [Ateliê de Itens](https://matheuz55peri-tech.github.io/Index-de-itens/studio.html), selecione **03 · Fundos de destaque**, escolha o visual desejado e ajuste a ampliação e o escurecimento. O fundo fica atrás do item e da moldura. A wiki também reproduz os GIFs como GIFs reais nos cartões e na visualização dos itens criados.
+
+- **Sprite PNG:** continua transparente, sem fundo.
+- **Card PNG:** inclui a imagem de fundo como captura estática (GIFs não têm animação no formato PNG).
+- **HTML animado:** exporta um arquivo HTML autossuficiente que incorpora o GIF original com todos os quadros e preserva a animação, sem depender de internet.
+- **Ficha exportada e backup:** o identificador, ampliação e escurecimento do fundo são guardados nos metadados do item; as imagens predefinidas continuam disponíveis no servidor.
+
