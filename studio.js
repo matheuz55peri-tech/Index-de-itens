@@ -160,12 +160,27 @@ $('positionReset').onclick=()=>{setLayerPosition(editLayer,0,0);setLayerScale(ed
 for(const [field,axis] of [['positionX','x'],['positionY','y']]){
  $(field).addEventListener('change',e=>{const r=layerRect(editLayer);if(!r)return;const current=axis==='x'?r.x+r.w/2:r.y+r.h/2,target=Number(e.target.value);if(!Number.isFinite(target))return;const p=layerPosition(editLayer);setLayerPosition(editLayer,p.x+(axis==='x'?target-current:0),p.y+(axis==='y'?target-current:0))})
 }
+function hitLayer(p){
+ const px=Math.floor(p.x),py=Math.floor(p.y);
+ if(px<0||py<0||px>=512||py>=512)return null;
+ if(frameBitmap){
+  const c=blankCanvas(1,1),ctx=c.getContext('2d',{willReadFrequently:true}),r=layerRect('frame');
+  if(r){ctx.drawImage(frameBitmap,r.x-p.x,r.y-p.y,r.w,r.h);if(ctx.getImageData(0,0,1,1).data[3]>45)return 'frame'}
+ }
+ if(working){
+  const c=artToSquare(),ctx=c.getContext('2d',{willReadFrequently:true});
+  if(ctx.getImageData(px,py,1,1).data[3]>40)return 'item'
+ }
+ return backgroundSource()?'background':null
+}
 editor.addEventListener('pointerdown',e=>{
  if(e.button!==0&&e.pointerType==='mouse')return;
+ const p=editorPoint(e),knob=e.target.closest?.('[data-resize]');
+ if(!knob&&!e.altKey){const clicked=hitLayer(p);if(clicked&&clicked!==editLayer)selectEditLayer(clicked)}
  if(!layerReady(editLayer))return;
- const p=editorPoint(e),r=layerRect(editLayer),position=layerPosition(editLayer);
+ const r=layerRect(editLayer),position=layerPosition(editLayer);
  if(!r)return;
- const knob=e.target.closest?.('[data-resize]'),mode=knob?'resize':'move';
+ const mode=knob?'resize':'move';
  const mid={x:r.x+r.w/2,y:r.y+r.h/2};
  dragState={id:e.pointerId,layer:editLayer,mode,origin:p,rect:r,position,startDistance:Math.max(15,Math.hypot(p.x-mid.x,p.y-mid.y))};
  editor.setPointerCapture(e.pointerId);editor.classList.add('is-dragging');editor.focus({preventScroll:true});e.preventDefault()
