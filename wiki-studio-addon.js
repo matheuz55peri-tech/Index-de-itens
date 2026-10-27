@@ -38,6 +38,8 @@ async function send(it){
  try{
   const p=await packOne(it);
   if(p.version===2&&p.image){p.image=await tinyPng(p.image);p.card=await tinyPng(it.image)}
+  delete p.sourceImage; // A origem editável é mantida na wiki; não entra no transporte por localStorage.
+  if(p.frameImage&&p.frameImage.length>1300000)delete p.frameImage;
   localStorage.setItem(INBOX,JSON.stringify(p));
   window.open('https://matheuz55peri-tech.github.io/Deltarune-RPG/#codex-import','_blank');
   notify('Item enviado ao Delta RPG com ícone redondo, moldura externa, fundo e atributos.')
