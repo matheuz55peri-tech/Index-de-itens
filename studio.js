@@ -39,6 +39,11 @@ function smartRemoveBackground(c,tol,onlyLight=false){
  const ctx=c.getContext('2d',{willReadFrequently:true}),img=ctx.getImageData(0,0,c.width,c.height);
  const d=img.data,w=c.width,h=c.height,n=w*h;
  const buckets=new Map(),step=Math.max(1,Math.floor(Math.min(w,h)/90));
+ // A arte já tem contorno externo transparente? Não remova cores do desenho.
+ let clearEdges=0,edgeSamples=0;
+ for(let x=0;x<w;x+=step){edgeSamples+=2;if(d[x*4+3]<20)clearEdges++;if(d[((h-1)*w+x)*4+3]<20)clearEdges++}
+ for(let y=0;y<h;y+=step){edgeSamples+=2;if(d[(y*w)*4+3]<20)clearEdges++;if(d[(y*w+w-1)*4+3]<20)clearEdges++}
+ if(clearEdges>edgeSamples*.65)return{removed:0,message:'A arte já tem fundo externo transparente. Nenhum contorno foi apagado.'};
  function survey(x,y){const i=(y*w+x)*4;if(d[i+3]<32)return;const r=d[i],g=d[i+1],b=d[i+2];
   if(onlyLight&&Math.min(r,g,b)<205)return;
   const key=((r>>4)<<8)|((g>>4)<<4)|(b>>4),entry=buckets.get(key)||{count:0,r:0,g:0,b:0};
@@ -139,8 +144,8 @@ for(const id of ['bgZoom','bgDim','bgX','bgY'])$(id).addEventListener('input',()
 // PNG transparente = RGBA verdadeiro; nenhum fundo ou moldura é achatado no arquivo.
 function artHasTransparency(c){
  const d=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,c.width,c.height).data;
- for(let i=3;i<d.length;i+=4)if(d[i]<255)return true;
- return false
+ let clear=0;for(let i=3;i<d.length;i+=4)if(d[i]<200)clear++;
+ return clear>Math.max(6,c.width*c.height*.001)
 }
 $('exportAlpha').onclick=async()=>{
  try{
