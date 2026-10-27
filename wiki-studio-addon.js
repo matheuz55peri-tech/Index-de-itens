@@ -52,7 +52,7 @@ const delta=document.createElement('button');delta.type='button';delta.className
 modalButtons.prepend(advanced,exportItem,delta);modalButtons.style.flexWrap='wrap';
 const bgExt={1:'jpg',2:'jpg',3:'gif',4:'gif',5:'gif',6:'gif',7:'jpg',8:'jpg',9:'jpg',10:'jpg'};
 const bgCSS=document.createElement('style');bgCSS.textContent=
- '.card-art>.codex-item-disc,.visual>.codex-item-disc{position:absolute;inset:0;display:block;z-index:0;clip-path:circle(40% at 50% 50%);pointer-events:none}'
+ '.card-art>.codex-item-disc,.visual>.codex-item-disc{position:absolute;display:block;z-index:0;clip-path:circle(40% at 50% 50%);pointer-events:none;left:50%;top:50%;transform:translate(-50%,-50%);aspect-ratio:1}' +'.card-art>.codex-item-disc{height:94%;width:auto}' +'.visual>.codex-item-disc{width:min(92%,320px);height:auto}'
  +'.codex-item-disc>.codex-item-background{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;transform-origin:center;image-rendering:auto;max-width:none;max-height:none;filter:none}'
  +'.codex-item-disc>.codex-item-shade{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}'
  +'.card-art>img:not(.codex-item-background){position:relative;z-index:2}.card-art>.gem,.card-art>.fav{z-index:3}'
