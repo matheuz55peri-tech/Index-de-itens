@@ -11,7 +11,31 @@ function asData(b){return new Promise((resolve,reject)=>{let r=new FileReader();
 function fromData(s){if(typeof s!=='string'||!s.startsWith('data:image/'))throw Error('Imagem inválida');let parts=s.split(','),b=atob(parts[1]),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return new Blob([a],{type:parts[0].slice(5).split(';')[0]||'image/png'})}
 function saveJson(o,file){let a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.href=u;a.download=file;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 const ids=new Set(),urls=new Map();
-async function reloadItems(){const list=readStudio(),known=new Set(list.map(x=>x.id));for(const it of [...ITEMS]){if(ids.has(it.id)&&!known.has(it.id)){ITEMS.splice(ITEMS.indexOf(it),1);ids.delete(it.id)}}for(const m of list){let it=ITEMS.find(x=>x.id===m.id);if(!it){it={id:m.id,name:m.name,group:Number(m.group)||1,category:category(m.group),number:ITEMS.length+1,emoji:'✦',image:''};ITEMS.push(it);ids.add(it.id)}it.name=m.name;it.group=Number(m.group)||1;it.category=category(it.group);it.number=ITEMS.indexOf(it)+1;const b=await asset('card:'+m.id)||await asset('art:'+m.id);if(b){let old=urls.get(m.id);if(old)URL.revokeObjectURL(old);it.image=URL.createObjectURL(b);urls.set(m.id,it.image)}}draw()}
+const repairedKey='codex-studio-frame-repair-v2';
+let repaired={};try{const data=JSON.parse(localStorage.getItem(repairedKey)||'{}');if(data&&typeof data==='object')repaired=data}catch(_){}
+async function fixedCard(m){
+ const art=await asset('art:'+m.id);
+ if(!art)return null;
+ const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;
+ const ctx=canvas.getContext('2d'),bitmap=await createImageBitmap(art);
+ ctx.save();ctx.beginPath();ctx.arc(256,256,512*.40,0,2*Math.PI);ctx.clip();
+ ctx.drawImage(bitmap,0,0,512,512);ctx.restore();bitmap.close?.();
+ const frameNo=Math.trunc(Number(m.frame)||0);
+ if(frameNo>=1&&frameNo<=9){
+  let frame=await asset('frame:'+frameNo);
+  if(!frame){try{const r=await fetch('assets/frames/frame-'+String(frameNo).padStart(2,'0')+'.png',{cache:'force-cache'});if(r.ok)frame=await r.blob()}catch(_){}}
+  if(frame){const bm=await createImageBitmap(frame),s=(Number(m.frameScale)||100)/100,d=512*s;
+   ctx.drawImage(bm,(512-d)/2+(Number(m.frameX)||0),(512-d)/2+(Number(m.frameY)||0),d,d);bm.close?.()}
+ }
+ const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Falha ao recuperar moldura')),'image/png'));
+ await setAsset('card:'+m.id,blob);
+ return blob
+}
+async function reloadItems(){const list=readStudio(),known=new Set(list.map(x=>x.id));for(const it of [...ITEMS]){if(ids.has(it.id)&&!known.has(it.id)){ITEMS.splice(ITEMS.indexOf(it),1);ids.delete(it.id)}}for(const m of list){let it=ITEMS.find(x=>x.id===m.id);if(!it){it={id:m.id,name:m.name,group:Number(m.group)||1,category:category(m.group),number:ITEMS.length+1,emoji:'✦',image:''};ITEMS.push(it);ids.add(it.id)}it.name=m.name;it.group=Number(m.group)||1;it.category=category(it.group);it.number=ITEMS.indexOf(it)+1;let b=null;
+ if((Number(m.frameRenderVersion)||0)<2&&repaired[m.id]!==m.updatedAt){
+  try{b=await fixedCard(m);if(b){repaired[m.id]=m.updatedAt||'legacy';localStorage.setItem(repairedKey,JSON.stringify(repaired))}}catch(e){console.warn('Recuperação de moldura:',e)}
+ }
+ b=b||await asset('card:'+m.id)||await asset('art:'+m.id);if(b){let old=urls.get(m.id);if(old)URL.revokeObjectURL(old);it.image=URL.createObjectURL(b);urls.set(m.id,it.image)}}draw()}
 function tinyPng(src){return new Promise((resolve,reject)=>{if(!src){resolve(null);return}const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=180;c.height=180;let ctx=c.getContext('2d'),ratio=Math.min(180/img.width,180/img.height),w=ratio*img.width,h=ratio*img.height;ctx.drawImage(img,(180-w)/2,(180-h)/2,w,h);resolve(c.toDataURL('image/png'))};img.onerror=()=>resolve(null);img.src=src})}
 function packComposition(m){
  const f=Math.trunc(Number(m.frame)||0),b=Math.trunc(Number(m.background)||0);
