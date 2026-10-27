@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "kind": "codex-frame-presets",
+  "description": "Nove molduras predefinidas originais PNG RGBA 900x900",
+  "frames": [
+    {
+      "id": 1,
+      "name": "Nuvens Rosadas",
+      "src": "frame-01.png",
+      "url": "https://matheuz55peri-tech.github.io/Index-de-itens/assets/frames/frame-01.png",
+      "width": 900,
+      "height": 900,
+      "format": "image/png",
+      "bytes": 441779
+    },
+    {
+      "id": 2,
+      "name": "Dragão Celestial",
+      "src": "frame-02.png",
+      "url": "https://matheuz55peri-tech.github.io/Index-de-itens/assets/frames/frame-02.png",
+      "width": 900,
+      "height": 900,
+      "format": "image/png",
+      "bytes": 482972
+    },
+    {
+      "id": 3,
+      "name": "Filigrana Dourada",
+      "src": "frame-03.png",
+      "url": "https://matheuz55peri-tech.github.io/Index-de-itens/assets/frames/frame-03.png",
+      "width": 900,
+      "height": 900,
+      "format": "image/png",
+      "bytes": 264405
+    },
+    {
+      "id": 4,
+      "name": "Floresta Musical",
+      "src": "frame-04.png",
+      "url": "https://matheuz55peri-tech.github.io/Index-de-itens/assets/frames/frame-04.png",
+      "width": 900,
+      "height": 900,
+      "format": "image/png",
+      "bytes": 453282
+    },
+    {
+      "id": 5,
+      "name": "Flores de Sakura",
+      "src": "frame-05.png",
+      "url": "https://matheuz55peri-tech.github.io/Index-de-itens/assets/frames/frame-05.png",
+      "width": 900,
+      "height": 900,
+      "format": "image/png",
+      "bytes": 412528
+    },
+    {
+      "id": 6,
+      "name": "Vitral Multicolor",
+      "src": "frame-06.png",
+      "url": "https://matheuz55peri-tech.github.io/Index-de-itens/assets/frames/frame-06.png",
+      "width": 900,
+      "height": 900,
+      "format": "image/png",
+      "bytes": 497094
+    },
+    {
+      "id": 7,
+      "name": "Tulipas de Vidro",
+      "src": "frame-07.png",
+      "url": "https://matheuz55peri-tech.github.io/Index-de-itens/assets/frames/frame-07.png",
+      "width": 900,
+      "height": 900,
+      "format": "image/png",
+      "bytes": 483397
+    },
+    {
+      "id": 8,
+      "name": "Flores de Outono",
+      "src": "frame-08.png",
+      "url": "https://matheuz55peri-tech.github.io/Index-de-itens/assets/frames/frame-08.png",
+      "width": 900,
+      "height": 900,
+      "format": "image/png",
+      "bytes": 652269
+    },
+    {
+      "id": 9,
+      "name": "Jardim Ametista",
+      "src": "frame-09.png",
+      "url": "https://matheuz55peri-tech.github.io/Index-de-itens/assets/frames/frame-09.png",
+      "width": 900,
+      "height": 900,
+      "format": "image/png",
+      "bytes": 517505
+    }
+  ]
+}
