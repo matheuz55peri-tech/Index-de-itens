@@ -86,13 +86,16 @@ function cutBackground(c,tol,frame){
 function bbox(c){const {data}=c.getContext('2d').getImageData(0,0,c.width,c.height);let xmin=c.width,ymin=c.height,xmax=-1,ymax=-1;for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++){if(data[(y*c.width+x)*4+3]>10){xmin=Math.min(xmin,x);xmax=Math.max(xmax,x);ymin=Math.min(ymin,y);ymax=Math.max(ymax,y)}}return xmax<0?null:{x:xmin,y:ymin,w:xmax-xmin+1,h:ymax-ymin+1}}
 function artToSquare(){const c=blankCanvas(512,512),ctx=c.getContext('2d');ctx.imageSmoothingEnabled=!$('pixelArt').checked;if(!working)return c;let scale=numeric('scale',20,250)/100,xshift=numeric('shiftX',-256,256),yshift=numeric('shiftY',-256,256);if(processedArt){let sz=512*scale;ctx.drawImage(working,(512-sz)/2+xshift,(512-sz)/2+yshift,sz,sz);return c}let b=bbox(working);if(!b)return c;let dim=430*scale/Math.max(b.w,b.h),w=b.w*dim,h=b.h*dim;ctx.drawImage(working,b.x,b.y,b.w,b.h,(512-w)/2+xshift,(512-h)/2+yshift,w,h);return c}
 // A arte e o fundo pertencem ao disco central. A moldura nunca é achatada sobre o centro do ícone.
-const ICON_RADIUS=512*.40,FRAME_INNER_RADIUS=512*.375;
+const ICON_RADIUS=512*.40;
 function discClip(ctx){ctx.beginPath();ctx.arc(256,256,ICON_RADIUS,0,Math.PI*2);ctx.clip()}
 function drawOuterFrame(ctx){
  if(!frameBitmap)return;
+ // Os PNGs das molduras já são transparentes no centro: não aplique uma
+ // máscara de anel, pois ela apagava pétalas, pontas e outros ornamentos.
  const s=numeric('frameScale',40,180)/100,d=512*s;
- ctx.save();ctx.beginPath();ctx.arc(256,256,258,0,Math.PI*2);ctx.arc(256,256,FRAME_INNER_RADIUS,0,Math.PI*2,true);ctx.clip('evenodd');
- ctx.drawImage(frameBitmap,(512-d)/2+numeric('frameX',-256,256),(512-d)/2+numeric('frameY',-256,256),d,d);ctx.restore()
+ ctx.save();
+ ctx.drawImage(frameBitmap,(512-d)/2+numeric('frameX',-256,256),(512-d)/2+numeric('frameY',-256,256),d,d);
+ ctx.restore()
 }
 function frameLayerCanvas(){const c=blankCanvas(512,512);drawOuterFrame(c.getContext('2d'));return c}
 function compose(includeFrame){const c=blankCanvas(512,512),ctx=c.getContext('2d');ctx.save();discClip(ctx);ctx.drawImage(artToSquare(),0,0);ctx.restore();if(includeFrame)drawOuterFrame(ctx);return c}
