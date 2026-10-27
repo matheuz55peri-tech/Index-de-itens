@@ -1,0 +1,46 @@
+name: Instalar GIF original sem recompressão
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'assets/backgrounds/_source/background-04.part-*.txt'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  restore-gif:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Reconstituir GIF animado bit a bit
+        run: |
+          python - <<'PY'
+          import base64, hashlib
+          from pathlib import Path
+          directory=Path('assets/backgrounds/_source')
+          parts=sorted(directory.glob('background-04.part-*.txt'))
+          if len(parts)!=8:
+              raise ValueError(f'Eram esperadas 8 partes, encontradas {len(parts)}')
+          joined=''.join(p.read_text('ascii') for p in parts)
+          data=base64.b64decode(joined,validate=True)
+          actual=hashlib.sha256(data).hexdigest()
+          expected='37a3fc4b01720c5ea9e403d3dd275788a6fcf3eb0867e47bb45c2a6431d68f54'
+          if actual!=expected:
+              raise ValueError(f'Checksum incorreto: {actual}')
+          if not data.startswith(b'GIF89a') and not data.startswith(b'GIF87a'):
+              raise ValueError('Formato de GIF inválido')
+          dest=Path('assets/backgrounds/background-04.gif')
+          dest.parent.mkdir(parents=True,exist_ok=True)
+          dest.write_bytes(data)
+          for part in parts:
+              part.unlink()
+          print(f'GIF preservado: {len(data)} bytes, SHA256 {actual}')
+          PY
+      - name: Publicar GIF original no repositório
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A assets/backgrounds
+          git diff --cached --quiet || (git commit -m "assets: publicar GIF vermelho original animado, sem perdas" && git push)
