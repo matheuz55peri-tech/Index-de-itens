@@ -326,7 +326,7 @@ function hitLayer(p){
  if(px<0||py<0||px>=512||py>=512)return null;
  if(frameBitmap){
   const c=blankCanvas(1,1),ctx=c.getContext('2d',{willReadFrequently:true}),r=layerRect('frame');
-  if(r){ctx.drawImage(frameBitmap,r.x-p.x,r.y-p.y,r.w,r.h);if(Math.hypot(p.x-256,p.y-256)>=FRAME_INNER_RADIUS&&ctx.getImageData(0,0,1,1).data[3]>45)return 'frame'}
+  if(r){ctx.drawImage(frameBitmap,r.x-p.x,r.y-p.y,r.w,r.h);if(Math.hypot(p.x-256,p.y-256)>=ICON_RADIUS*.70&&ctx.getImageData(0,0,1,1).data[3]>45)return 'frame'}
  }
  if(working){
   const c=artToSquare(),ctx=c.getContext('2d',{willReadFrequently:true});
