@@ -67,4 +67,4 @@ function downloadJson(content,name){const blob=new Blob([JSON.stringify(content,
 el('exportBtn').onclick=()=>downloadJson({format:'codex-arcano-v2',descriptions,names:customNames,favorites},'codex_arcano_backup.json');
 el('importBtn').onclick=()=>el('importFile').click();el('importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o||typeof o!=='object'||Array.isArray(o))throw Error('Formato');if(o.format==='codex-arcano-v2'){descriptions=o.descriptions||{};customNames=o.names||{};favorites=Array.isArray(o.favorites)?o.favorites:[]}else{descriptions=o}persist('codex_descriptions',descriptions);persist('codex_names_v2',customNames);persist('codex_favorites_v2',favorites);draw();notify('Descrições importadas com sucesso.')}catch{notify('Não foi possível ler esse arquivo JSON.')}finally{e.target.value=''}};
 draw();
-</script></body></html>
+</script><script src="wiki-studio-addon.js"></script></body></html>
