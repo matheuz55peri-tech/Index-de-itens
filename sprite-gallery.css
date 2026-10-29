@@ -13,3 +13,34 @@
 .card[data-group] .gem{border:1px solid #e4b79065}
 @media(max-width:750px){.codex-compare{flex:1 1 150px}.cx-sprites-status{line-height:1.4}}
 @media(prefers-reduced-motion:reduce){.card[data-group] .card-art img{transition:none!important}}
+
+/* Restauração da nitidez visual no catálogo.
+   Evita ampliar pixels de um PNG de 128px como grandes blocos em cards maiores.
+   Os arquivos de arte originais permanecem intocados. */
+.card[data-group] .card-art img,
+.card-art > img:not(.codex-item-background),
+.visual img,
+.large-art img {
+  image-rendering:auto !important;
+  -ms-interpolation-mode:bicubic;
+}
+.card-art > img:not(.codex-item-background) {
+  width: min(82%, 158px);
+  height: min(82%, 158px);
+  object-fit:contain;
+  filter:drop-shadow(0 12px 12px #0008);
+}
+.card:hover .card-art > img:not(.codex-item-background) {
+  filter:drop-shadow(0 15px 13px #0009);
+}
+.visual img {
+  max-width:min(85%, 260px);
+  max-height:260px;
+  object-fit:contain;
+}
+@media(max-width:750px){
+  .card-art > img:not(.codex-item-background){
+    width:min(86%,130px);
+    height:min(86%,130px);
+  }
+}
