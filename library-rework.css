@@ -1,0 +1,58 @@
+/* Codex Arcano — library and asset archive matching the Wiki visual language */
+:root{--cx-bg:#100d17;--cx-surface:#241d2b;--cx-raised:#34293a;--cx-stroke:#7d6680;--cx-ivory:#f4e8dc;--cx-gold:#e7c58f;--cx-rose:#e7b0cb;--cx-ease:cubic-bezier(.2,.8,.2,1)}
+body{background:radial-gradient(ellipse at 75% -20%,#5c3b5d5c,transparent 50%),radial-gradient(ellipse at 10% 70%,#37315330,transparent 45%),var(--cx-bg);color:#f6edf4}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background-image:radial-gradient(#ecceb719 .7px,transparent 1px);background-size:26px 26px}
+::selection{background:#b47a9f;color:#fff}
+.shell{max-width:1500px;padding-top:20px}
+.shell .top{border:1px solid #91788b86;border-radius:16px;padding:25px 27px;background:linear-gradient(110deg,#302437ee,#1c1828);box-shadow:0 14px 42px #08061086;position:relative;overflow:hidden}
+.shell .top:before{content:"";height:2px;position:absolute;inset:0 0 auto;background:linear-gradient(90deg,transparent,#e3c08b,#d693c4,transparent)}
+.shell .top h1{color:var(--cx-ivory);letter-spacing:-.025em;line-height:1.13}
+.shell .top .eyebrow{color:#f1d3a4;font-weight:700}
+.shell .top p{font-size:13px;color:#d0c0d0;max-width:680px}
+.nav .btn,.actions .btn,.field .btn,button.btn{transition:background .18s,transform .18s var(--cx-ease),box-shadow .18s,border-color .18s;border-radius:10px}
+.nav .btn:hover,.actions .btn:hover,.field .btn:hover,button.btn:hover{border-color:#e6c59d;transform:translateY(-2px);box-shadow:0 7px 22px #0006}
+.nav .btn:active,.actions .btn:active,button.btn:active{transform:translateY(1px) scale(.98)}
+.btn.primary{background:linear-gradient(120deg,#b27a9b,#795777);border-color:#e7bed0;color:#fff}
+.btn.primary:hover{background:linear-gradient(120deg,#cb90b1,#a375a1)}
+.stats{gap:9px;margin:19px 0 22px}
+.stat{border:1px solid #6a5b7469;background:#2e2536;border-radius:24px;padding:9px 12px;color:#e7d7e6;font-size:11px}
+.stat:before{content:"✧";color:#e9c591;font-size:13px}
+.stat .dot{background:#9bd9bb}
+#gallery.grid{grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:16px}
+#gallery .card{background:linear-gradient(145deg,#30263a,#1b1824);border:1px solid #76617b;border-radius:17px;transition:transform .23s var(--cx-ease),border-color .23s,box-shadow .23s}
+#gallery .card:hover{transform:translateY(-6px);border-color:#ebc49f!important;box-shadow:0 17px 34px #0007,0 0 18px #bd8fb93b}
+#gallery .imgspace{background-color:#282332;background-image:linear-gradient(45deg,#35303f 25%,transparent 25%),linear-gradient(-45deg,#35303f 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#35303f 75%),linear-gradient(-45deg,transparent 75%,#35303f 75%);border-bottom:1px solid #8b6f8a66;overflow:hidden}
+#gallery .imgspace img{transition:transform .38s var(--cx-ease),filter .38s;filter:drop-shadow(0 6px 10px #0006)}
+#gallery .card:hover .imgspace img{transform:scale(1.06);filter:drop-shadow(0 10px 16px #0009)}
+#gallery .detail h2{color:#ecd4a9;font-size:21px}
+#gallery .info{color:#c6b6c9}
+#gallery .number{color:#e7adcf}
+#gallery .actions .btn{flex:1}
+.panel{border:1px solid #79627d;border-radius:17px;background:linear-gradient(150deg,#2b2332,#191622);padding:24px;box-shadow:0 12px 32px #08061055}
+.panel h2{color:#efcf9d}
+.panel .field select{background:#18131e;border:1px solid #9a7899;padding:12px}
+.panel .code{border:1px solid #685578;background:#100e18;color:#d8e2ec}
+.panel .status{font-size:12px;color:#bcdfc5}
+footer{color:#b8a8bb}
+main:not(.shell){max-width:1180px;margin:auto;padding:26px clamp(14px,3vw,46px) 80px}
+main:not(.shell)>h1{font:normal clamp(36px,4vw,56px)/1.1 Georgia,serif;color:#f5e8d6;letter-spacing:-.026em;margin:19px 0}
+main:not(.shell)>p{color:#cbb9c9}
+main:not(.shell)>.panel{margin:18px 0}
+main:not(.shell) .panel h2{font:normal 25px Georgia,serif}
+main:not(.shell) .panel input[type=text],main:not(.shell) .panel input[type=password]{border-color:#88718b;background:#17131d;border-radius:10px;padding:13px}
+main:not(.shell) .panel input[type=file]{width:100%;max-width:none;background:#1d1728;border:1px dashed #a68ca7;padding:20px;border-radius:11px}
+main:not(.shell) .panel input[type=file]::file-selector-button{padding:10px 12px;background:#6a4c70;border:1px solid #e1b6d2;border-radius:8px;color:white;margin-right:14px}
+main:not(.shell) .panel button{background:#493550;border:1px solid #97769b;transition:background .2s,transform .2s;border-radius:10px}
+main:not(.shell) .panel button:hover{background:#704b69;transform:translateY(-2px)}
+main:not(.shell) .panel #send{background:linear-gradient(110deg,#b47a9b,#7b557a);border-color:#e5b3c9;font-weight:700}
+main:not(.shell) .panel .status{background:#241a2e;color:#dfd2ed;border:1px solid #7d667f}
+main:not(.shell) #results.grid{grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:14px}
+main:not(.shell) #results .card{background:#211b2d;border:1px solid #79617f;border-radius:14px;box-shadow:0 6px 20px #0004;transition:transform .2s,border-color .2s}
+main:not(.shell) #results .card:hover{transform:translateY(-3px);border-color:#edc4a0}
+main:not(.shell) #results .card img{border-radius:11px}
+main:not(.shell) .warn{border-color:#e4c19a;padding:11px 14px;border-radius:0 9px 9px 0;background:#a36c8b12}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #edcf9e;outline-offset:3px}
+@media(max-width:700px){.shell{padding:12px 13px 50px}.shell .top{padding:19px}.stats{gap:7px}#gallery.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}#gallery .detail{padding:11px}#gallery .detail h2{font-size:17px}#gallery .actions{flex-direction:column}#gallery .actions .btn{width:100%}main:not(.shell){padding:14px 12px 48px}}
+@media(max-width:400px){#gallery.grid{grid-template-columns:1fr}.panel{padding:14px}.shell .top h1{font-size:34px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+body.cx-motion-off *,body.cx-motion-off *:before,body.cx-motion-off *:after{animation-duration:.01ms!important;transition-duration:.01ms!important}
