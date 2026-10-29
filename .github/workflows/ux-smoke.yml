@@ -13,6 +13,10 @@ on:
       - "assets.html"
       - "images.html"
       - "library-rework.css"
+      - "sprite-gallery.js"
+      - "sprite-gallery.css"
+      - "assets/data/sprites-reworked.js"
+      - "assets/sprites-reworked/**"
       - "tests/ui_smoke.py"
       - ".github/workflows/ux-smoke.yml"
   workflow_dispatch:
