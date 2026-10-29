@@ -74,7 +74,8 @@ with sync_playwright() as play:
         assert page.locator('link[href*="library-rework.css"]').count() == 1, "Image library: design stylesheet absent"
 
         page.goto(f"http://127.0.0.1:{PORT}/studio.html", wait_until="domcontentloaded")
-        page.locator("#cx-panel-arte").wait_for(timeout=12000)
+        page.locator("#cx-panel-arte").wait_for(state="attached", timeout=12000)
+        page.locator("#cx-tab-arte").click()
         assert page.locator(".cx-stage-tab").count() == 5, "Studio: 5-step navigation missing"
         page.locator(".cx-help-link").click()
         assert page.locator(".cx-studio-guide").evaluate("(e)=>e.open"), "Studio: guide dialog not working"
@@ -131,7 +132,8 @@ with sync_playwright() as play:
         assert page.locator("#search").is_visible(), "Mobile wiki: search hidden"
         page.screenshot(path=str(SHOTS / "wiki-mobile.png"), full_page=False)
         page.goto(f"http://127.0.0.1:{PORT}/studio.html", wait_until="domcontentloaded")
-        page.locator("#cx-panel-arte").wait_for(timeout=12000)
+        page.locator("#cx-panel-arte").wait_for(state="attached", timeout=12000)
+        page.locator("#cx-tab-arte").click()
         assert page.locator("#visualEditor").is_visible(), "Mobile studio: preview inaccessible"
         page.locator("#cx-tab-molduras").click()
         assert page.locator("#frames .frame").count() == 10, "Mobile studio: presets hidden"
