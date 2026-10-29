@@ -62,10 +62,23 @@ with sync_playwright() as play:
         page.locator(".cx-density").filter(has_text="Grade").click()
         assert page.locator("body").evaluate("(e)=>e.classList.contains('cx-compact')"), "Wiki: compact density failed"
         page.screenshot(path=str(SHOTS / "wiki.png"), full_page=False)
+        # Todas as áreas do acervo usam a mesma identidade visual.
+        page.goto(f"http://127.0.0.1:{PORT}/assets.html", wait_until="domcontentloaded")
+        page.locator("#gallery .card").first.wait_for(timeout=12000)
+        assert page.locator("#gallery .card").count() == 9, "Assets: expected nine original frame previews"
+        assert page.locator('link[href*="library-rework.css"]').count() == 1, "Assets: design stylesheet absent"
+        page.locator('#chosen').select_option('2')
+        assert 'frame-03.png' in page.locator('#urlCode').inner_text(), "Assets: frame URL selector broken"
+        page.goto(f"http://127.0.0.1:{PORT}/images.html", wait_until="domcontentloaded")
+        assert page.locator("#send").count() and page.locator("#files").count(), "Image library: upload tools missing"
+        assert page.locator('link[href*="library-rework.css"]').count() == 1, "Image library: design stylesheet absent"
 
         page.goto(f"http://127.0.0.1:{PORT}/studio.html", wait_until="domcontentloaded")
         page.locator("#cx-panel-arte").wait_for(timeout=12000)
         assert page.locator(".cx-stage-tab").count() == 5, "Studio: 5-step navigation missing"
+        page.locator(".cx-help-link").click()
+        assert page.locator(".cx-studio-guide").evaluate("(e)=>e.open"), "Studio: guide dialog not working"
+        page.locator("#cxGuideClose").click()
         assert page.locator("#visualEditor").count() == 1, "Studio: preview missing"
         assert page.locator("#frames .frame").count() == 10, "Studio: presets missing"
         assert page.locator("#backgrounds .background-option").count() == 11, "Studio: backgrounds missing"
@@ -111,8 +124,20 @@ with sync_playwright() as play:
         page.screenshot(path=str(SHOTS / "studio.png"), full_page=False)
         page.goto(f"http://127.0.0.1:{PORT}/studio.html?edit={item_id}", wait_until="domcontentloaded")
         page.wait_for_function("() => document.querySelector('#name')?.value === 'Relíquia de Teste'", timeout=15000)
+        # Visual mobile: controles continuam acessíveis e as guias não provocam rolagem da página.
+        page.set_viewport_size({"width": 390, "height": 844})
+        page.goto(f"http://127.0.0.1:{PORT}/index.html", wait_until="domcontentloaded")
+        page.locator(".cx-welcome").wait_for(timeout=12000)
+        assert page.locator("#search").is_visible(), "Mobile wiki: search hidden"
+        page.screenshot(path=str(SHOTS / "wiki-mobile.png"), full_page=False)
+        page.goto(f"http://127.0.0.1:{PORT}/studio.html", wait_until="domcontentloaded")
+        page.locator("#cx-panel-arte").wait_for(timeout=12000)
+        assert page.locator("#visualEditor").is_visible(), "Mobile studio: preview inaccessible"
+        page.locator("#cx-tab-molduras").click()
+        assert page.locator("#frames .frame").count() == 10, "Mobile studio: presets hidden"
+        page.screenshot(path=str(SHOTS / "studio-mobile.png"), full_page=False)
         assert not errors, "Browser JS errors:\n" + "\n".join(errors)
-        print("PASS: wiki navigation, search, density, help; studio tabs, frame, animated GIF, transparent PNG, sprite, circle, saved/reopened item")
+        print("PASS: wiki navigation/search/density/help; frame gallery and asset library; studio tabs/guide/frames/GIF, PNG exports, saved/reopened item")
     except Exception:
         page.screenshot(path=str(SHOTS / "failure.png"), full_page=False)
         print("JS ERRORS:", json.dumps(errors, ensure_ascii=False))
