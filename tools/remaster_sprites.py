@@ -14,6 +14,7 @@ import json
 import math
 import re
 from pathlib import Path
+from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 
 import numpy as np
 from PIL import Image, ImageChops, ImageEnhance, ImageFilter, ImageDraw
@@ -302,6 +303,13 @@ def main():
         processed[identifier]=art
         report.append(detail)
     assert len(processed)==205
+    # Entrega em arquivo único, sem alterar o conteúdo dos PNGs gerados.
+    archive = folder / "205-sprites-codex-remaster.zip"
+    with ZipFile(archive, "w", compression=ZIP_DEFLATED, compresslevel=9) as zip_file:
+        for ident in processed:
+            item = ZipInfo(ident+".png", date_time=(2020, 1, 1, 0, 0, 0))
+            item.compress_type = ZIP_DEFLATED
+            zip_file.writestr(item, (folder/(ident+".png")).read_bytes(), compress_type=ZIP_DEFLATED, compresslevel=9)
     js="/* All 205 Codex Arcano sprites • Remaster V2 • PNG transparent 128x128 */\n"
     manifest={identifier:"assets/sprites-reworked/"+identifier+".png" for identifier in processed}
     js+="window.CODEX_IMAGES = "+json.dumps(manifest,ensure_ascii=False,separators=(',',':'))+";\n"
