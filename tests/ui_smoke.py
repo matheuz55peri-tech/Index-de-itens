@@ -52,6 +52,27 @@ with sync_playwright() as play:
         assert page.locator(".cx-help-button").count() == 1, "Wiki: help button missing"
         assert page.locator(".nav-btn").count() >= 6, "Wiki: category navigation missing"
         assert page.locator("#grid .card").count() > 30, "Wiki: original items disappeared"
+        # Todos os 205 sprites são PNGs novos, não apenas estilo dos cartões.
+        page.locator(".codex-compare").wait_for(timeout=12000)
+        assert page.locator("#grid .card").count() == 205, "Wiki: 205 individual art cards missing"
+        remaster_urls=page.locator("#grid .card img").evaluate_all(
+            "(nodes)=>nodes.map(i=>new URL(i.src).pathname).filter(p=>p.includes('/assets/sprites-reworked/'))"
+        )
+        assert len(remaster_urls)==205, f"Wiki: {len(remaster_urls)} new PNGs instead of 205"
+        missing_art=page.evaluate("""async () => {
+            const urls = [...document.querySelectorAll('#grid .card img')].map(i=>i.src);
+            return (await Promise.all(urls.map(async url => {
+               const pic = new Image(); pic.src=url;
+               try {await pic.decode();return null} catch(e){return url}
+            }))).filter(Boolean)
+        }""")
+        assert not missing_art, f"Wiki: broken remastered sprites: {missing_art[:3]}"
+        page.locator(".codex-compare").click()
+        page.wait_for_function("() => document.querySelector('.codex-compare')?.getAttribute('aria-pressed') === 'true'", timeout=20000)
+        assert page.locator("#grid .card img").first.get_attribute("src").startswith("data:image/png;base64,"), "Wiki: original compare unavailable"
+        page.locator(".codex-compare").click()
+        page.wait_for_function("() => document.querySelector('.codex-compare')?.getAttribute('aria-pressed') === 'false'", timeout=10000)
+        assert "sprites-reworked" in page.locator("#grid .card img").first.get_attribute("src"), "Wiki: restored remasters not shown"
         page.locator("#search").fill("Flor")
         assert page.locator("#grid .card").count() > 0, "Wiki: search stopped working"
         page.locator(".cx-clear").click()
