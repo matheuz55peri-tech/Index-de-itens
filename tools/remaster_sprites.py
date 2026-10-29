@@ -217,9 +217,8 @@ def add_pixel_finish(canvas, art, palette):
     if art.width == 0 or art.height == 0:
         return canvas
     mask = art.getchannel("A")
-    im = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    im.paste(mask, (x, y))
-    alpha = im.getchannel("A")
+    alpha = Image.new("L", canvas.size, 0)
+    alpha.paste(mask, (x, y))
     solid = alpha.point(lambda v: 255 if v >= 85 else 0)
 
     # Silhouette outline: ~1px. Never modifies the art's shape or internal palette.
