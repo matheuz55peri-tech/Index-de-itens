@@ -10,6 +10,9 @@ on:
       - "wiki-rework.js"
       - "wiki-rework.css"
       - "wiki-studio-addon.js"
+      - "assets.html"
+      - "images.html"
+      - "library-rework.css"
       - "tests/ui_smoke.py"
       - ".github/workflows/ux-smoke.yml"
   workflow_dispatch:
