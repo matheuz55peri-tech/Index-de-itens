@@ -86,3 +86,16 @@ A interface foi reorganizada para tornar a criação de itens mais simples sem a
 **Bibliotecas:** `assets.html` mostra as nove molduras e os links públicos; `images.html` é a interface de publicação de novas imagens no próprio repositório.
 
 **Teste automático:** o workflow `.github/workflows/ux-smoke.yml` executa `tests/ui_smoke.py` com Chromium para confirmar navegação, biblioteca, molduras, GIFs, PNGs transparentes e salvamento/reabertura. O teste usa um servidor local no runner, sem modificar dados dos usuários.
+
+### Rework de 205 sprites — nova arte de cada item
+
+As 205 artes foram processadas individualmente, sem reutilizar um ícone genérico. A versão atual da wiki carrega `assets/data/sprites-reworked.js` e imagens RGBA 128×128 no diretório `assets/sprites-reworked/`.
+
+- **18** itens e consumíveis, **14** flores, **9** itens carmesins, **32** glaciais, **32** espadas encantadas e **100** artefatos.
+- Novo recorte e reenquadramento, tratamento de fundos cinzentos planos quando detectados, contraste e paleta balanceados por categoria, contorno e brilho de borda em pixel art.
+- Os arquivos originais `assets/data/sprites-01.js` a `sprites-17.js` permanecem intocados como backup. A wiki tem o botão **Ver sprites originais** para comparar.
+- **PNG transparente real**, sem adicionar um fundo ou moldura diretamente à arte de origem. A wiki desenha seus efeitos de categoria separadamente.
+
+[Prévia dos 205 sprites](assets/sprites-reworked/preview-all-205.png) · [Pacote ZIP com os 205 PNGs](assets/sprites-reworked/205-sprites-codex-remaster.zip) · [Relatório do processamento](assets/sprites-reworked/report.json).
+
+**Método:** a remasterização é feita por script a partir das imagens fornecidas e preserva os formatos dos itens existentes; não equivale a redesenhar manualmente 205 objetos do zero. O pipeline reproduzível está em `tools/remaster_sprites.py` e a automação em `.github/workflows/remaster-sprites.yml`.
