@@ -38,8 +38,8 @@ function details(summary,open=false){
 const top=document.querySelector('.top'),headerText=top?.querySelector('.top>div:first-child');
 if(headerText){const eyebrow=headerText.querySelector('.eyebrow');if(eyebrow)eyebrow.prepend(make('span','cx-header-crest','✦'))}
 const quick=make('div','cx-header-quick');
-const saveQuick=make('button',null,'✦ Salvar criação'),fileLabel=make('span','cx-header-pill','✧ As imagens ficam no seu navegador');
-saveQuick.type='button';quick.append(saveQuick,fileLabel);
+const saveQuick=make('button',null,'✦ Salvar criação'),fileLabel=make('span','cx-header-pill','✧ As imagens ficam no seu navegador'),guideButton=make('button','cx-help-link','? Guia rápido');
+saveQuick.type='button';guideButton.type='button';quick.append(saveQuick,guideButton,fileLabel);
 top?.append(quick);
 // Mantemos o painel de visualização e a edição por arraste juntos.
 left.classList.add('cx-preview-pane');right.classList.add('cx-right-pane');
@@ -144,6 +144,14 @@ function setStage(id,focus=false){
  if(window.innerWidth<851&&focus)right.scrollIntoView({behavior:prefersQuiet()?'auto':'smooth',block:'start'})
 }
 for(const s of stages)stageTabs[s.id].addEventListener('click',()=>setStage(s.id,true));
+// Navegação inferior: sempre indique a próxima ação, especialmente no celular.
+for(let i=0;i<stages.length;i++){
+ const footer=make('div','cx-stage-footer'),count=make('span','cx-stage-progress','Etapa '+(i+1)+' de '+stages.length);
+ footer.append(count);
+ if(i>0){const previous=make('button','btn','← '+stages[i-1].label);previous.type='button';previous.addEventListener('click',()=>setStage(stages[i-1].id,true));footer.append(previous)}
+ if(i<stages.length-1){const next=make('button','btn gold','Continuar: '+stages[i+1].label+' →');next.type='button';next.addEventListener('click',()=>setStage(stages[i+1].id,true));footer.append(next)}
+ stagePanels[stages[i].id].append(footer)
+}
 nav.addEventListener('keydown',e=>{
  if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
  e.preventDefault();const i=stages.findIndex(x=>x.id===activeStage);
@@ -236,6 +244,20 @@ function statusChanged(){
 }
 new MutationObserver(statusChanged).observe(status,{childList:true,subtree:true,characterData:true});
 statusChanged();
+const guide=make('dialog','cx-studio-guide');
+guide.setAttribute('aria-label','Como usar o Ateliê de Itens');
+guide.innerHTML='<header><h2>Seu ateliê, passo a passo</h2><p>Do desenho ao ícone pronto para o Delta RPG.</p></header>'+
+ '<div class="cx-guide-body"><p><strong>01 · Arte</strong> — Envie sua imagem, remova o fundo e arraste para posicionar.</p>'+
+ '<p><strong>02 · Molduras</strong> — Escolha uma das nove bordas. Os ornamentos ficam por fora do ícone.</p>'+
+ '<p><strong>03 · Fundos</strong> — Selecione um dos dez cenários, incluindo quatro GIFs animados.</p>'+
+ '<p><strong>04 · Ficha</strong> — Preencha nome, tipo, raridade, história e atributos.</p>'+
+ '<p><strong>05 · Salvar</strong> — Salve no Codex, exporte PNG/HTML ou envie ao Delta RPG.</p>'+
+ '<p class="cx-guide-reminder">Dica: a seleção <em>Fundo / Item / Moldura</em> fica logo abaixo da prévia. Use <strong>Posição</strong> para centralizar perfeitamente.</p></div>'+
+ '<footer><button class="btn gold" type="button" id="cxGuideClose">Começar a criar</button></footer>';
+document.body.append(guide);
+guideButton.addEventListener('click',()=>{if(!guide.open)guide.showModal()});
+guide.querySelector('#cxGuideClose').addEventListener('click',()=>guide.close());
+guide.addEventListener('click',e=>{if(e.target===guide)guide.close()});
 const externalHelp=make('div','cx-onboarding-banner');
 externalHelp.innerHTML='<strong>Precisa de ajuda?</strong> Escolha uma etapa à direita. A prévia pode ser arrastada com mouse ou dedo; para uma imagem transparente, use a etapa Arte.';
 left.append(externalHelp);
