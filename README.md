@@ -66,3 +66,23 @@ No [Ateliê de Itens](https://matheuz55peri-tech.github.io/Index-de-itens/studio
 - **HTML animado:** exporta um arquivo HTML autossuficiente que incorpora o GIF original com todos os quadros e preserva a animação, sem depender de internet.
 - **Ficha exportada e backup:** o identificador, ampliação e escurecimento do fundo são guardados nos metadados do item; as imagens predefinidas continuam disponíveis no servidor.
 
+### Interface V3 — Wiki + Ateliê
+
+A interface foi reorganizada para tornar a criação de itens mais simples sem alterar os dados existentes em `localStorage` e `IndexedDB`.
+
+**Wiki:** navegação em coleções, pesquisa em destaque, atalhos `/` e `Ctrl+K`, visualização compacta ou confortável, seção de favoritos, guia rápido e cartões com transições. A preferência de densidade é mantida neste navegador.
+
+**Ateliê:** as ferramentas agora estão divididas em cinco etapas acessíveis na mesma tela: **Arte → Molduras → Fundos → Ficha → Salvar**. A prévia permanece ao lado no desktop e acima das etapas no celular. O botão **Posição** mantém os controles exatos; mouse, toque e teclado continuam funcionando para arrastar, redimensionar e centralizar.
+
+**Fluxo sugerido:**
+1. Na etapa **Arte**, carregue um PNG/JPG/WEBP, remova o fundo quando necessário e ajuste o ícone.
+2. Em **Molduras**, escolha uma moldura PNG predefinida; ela permanece fora do disco circular.
+3. Em **Fundos**, selecione um JPG ou GIF animado e personalize a posição.
+4. Na **Ficha**, informe nome, categoria, descrição e atributos.
+5. Em **Salvar**, grave na wiki, exporte PNG/HTML ou envie ao Delta RPG.
+
+**Microanimações:** uma breve emissão de partículas confirma a seleção da moldura, os cliques recebem feedback e as etapas mudam com transições suaves. Existe uma opção **Reduzir efeitos**, que respeita também `prefers-reduced-motion`.
+
+**Bibliotecas:** `assets.html` mostra as nove molduras e os links públicos; `images.html` é a interface de publicação de novas imagens no próprio repositório.
+
+**Teste automático:** o workflow `.github/workflows/ux-smoke.yml` executa `tests/ui_smoke.py` com Chromium para confirmar navegação, biblioteca, molduras, GIFs, PNGs transparentes e salvamento/reabertura. O teste usa um servidor local no runner, sem modificar dados dos usuários.
