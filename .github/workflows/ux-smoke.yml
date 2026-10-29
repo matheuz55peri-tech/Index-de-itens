@@ -1,0 +1,39 @@
+name: Verificar interface do Codex Arcano
+on:
+  push:
+    paths:
+      - "index.html"
+      - "studio.html"
+      - "studio.js"
+      - "studio-rework.js"
+      - "studio-rework.css"
+      - "wiki-rework.js"
+      - "wiki-rework.css"
+      - "wiki-studio-addon.js"
+      - "tests/ui_smoke.py"
+      - ".github/workflows/ux-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar Chromium e Playwright
+        run: |
+          python -m pip install --disable-pip-version-check playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Testar a wiki e o Ateliê no navegador
+        run: python tests/ui_smoke.py
+      - name: Salvar capturas para revisão
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-ux-screenshots
+          path: test-artifacts/
+          if-no-files-found: ignore
