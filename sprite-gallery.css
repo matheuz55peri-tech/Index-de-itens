@@ -1,0 +1,15 @@
+.codex-compare{border-color:#b59c82!important;color:#f5dfb5!important;background:linear-gradient(100deg,#403043,#342939)!important;white-space:nowrap}
+.codex-compare:hover{border-color:#f0d1a2!important;background:#63475a!important}
+.codex-compare.codex-originals{background:#3e2e38!important;color:#f2b7c7!important}
+.codex-compare:disabled{opacity:.6;cursor:progress}
+.cx-sprites-status{font-size:11px;color:#d4bdcc;margin:0 0 17px;padding:9px 13px;border-left:2px solid #dab58c;border-radius:0 9px 9px 0;background:#3425378c;letter-spacing:.025em}
+.card[data-group="1"] .card-art{background:radial-gradient(circle at 50% 54%,#6a594b60,#352c3b 65%,#211b2b)}
+.card[data-group="2"] .card-art{background:radial-gradient(circle at 50% 55%,#71426377,#36263e 60%,#201a2b)}
+.card[data-group="3"] .card-art{background:radial-gradient(circle at 50% 54%,#7f3c4173,#402534 62%,#221923)}
+.card[data-group="4"] .card-art{background:radial-gradient(circle at 50% 55%,#346b8480,#252f48 65%,#1b1c2b)}
+.card[data-group="5"] .card-art{background:radial-gradient(circle at 50% 54%,#6b527f70,#3a2b51 66%,#211b2e)}
+.card[data-group="6"] .card-art{background:radial-gradient(circle at 50% 55%,#6e52845b,#31273e 64%,#1d1928)}
+.card[data-group] .card-art img{image-rendering:pixelated}
+.card[data-group] .gem{border:1px solid #e4b79065}
+@media(max-width:750px){.codex-compare{flex:1 1 150px}.cx-sprites-status{line-height:1.4}}
+@media(prefers-reduced-motion:reduce){.card[data-group] .card-art img{transition:none!important}}
